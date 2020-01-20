@@ -1,4 +1,4 @@
-name: "GCE Deploy"
+name: "Google Cloud Compute Engine Deploy"
 description: "Deploy to Google Cloud Compute Engine"
 
 branding:
