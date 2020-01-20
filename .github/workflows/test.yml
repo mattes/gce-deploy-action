@@ -1,0 +1,30 @@
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+    - name: Check out repo
+      uses: actions/checkout@v1
+    - name: go test
+      run: go test -mod vendor -v .
+
+  example:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v1
+      - name: Print environment variables
+        run: env
+      - name: List directory
+        run: ls -la
+      - name: GCE Deploy Test
+        uses: mattes/gce-deploy-action@master
+        with:
+          dir: example
+          config: deploy.yml
+          google_application_credentials: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}

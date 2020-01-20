@@ -1,0 +1,5 @@
+#cloud-config
+
+runcmd:
+  - echo "$(MY_SCRIPT_VAR) $PWD"
+

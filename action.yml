@@ -1,0 +1,17 @@
+name: "GCE Deploy"
+description: "Deploy to Google Cloud Compute Engine"
+
+branding:
+  icon: "upload-cloud"
+  color: "orange"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+
+inputs:
+  config:
+    description: "Path to config file"
+    required: false
+    default: "deploy.yml" # or deploy.yaml
+
