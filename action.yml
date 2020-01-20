@@ -10,8 +10,18 @@ runs:
   image: "Dockerfile"
 
 inputs:
+  dir:
+    description: "Working directory. Defaults to root directory of repository."
+    required: false
+    default: ""
   config:
     description: "Path to config file"
     required: false
     default: "deploy.yml" # or deploy.yaml
+  google_application_credentials:
+    description: "Either a path or the contents of a Service Account JSON Key."
+    required: false
+    default: ""
+
+
 
