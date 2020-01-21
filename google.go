@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,116 +15,198 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
-func NewClientFromJSON(data string) (*http.Client, error) {
-	conf, err := google.JWTConfigFromJSON([]byte(data), compute.ComputeScope)
-	if err != nil {
-		return nil, err
-	}
+var (
+	instanceTemplateDescription = "created by gce-deploy-action"
+)
 
-	return conf.Client(oauth2.NoContext), nil
+type ServiceAccountFile struct {
+	Type string `json:"type"` // serviceAccountKey or userCredentialsKey
+
+	ClientEmail  string `json:"client_email"`
+	PrivateKeyID string `json:"private_key_id"`
+	PrivateKey   string `json:"private_key"`
+	TokenURL     string `json:"token_uri"`
+	ProjectID    string `json:"project_id"`
+
+	ClientSecret string `json:"client_secret"`
+	ClientID     string `json:"client_id"`
+	RefreshToken string `json:"refresh_token"`
 }
 
-func CloneInstanceTemplate(c *compute.Service, projectId, oldName, newName string, cloudconfig, shutdownScript []byte) (string, error) {
+func NewClientFromJSON(data string) (*http.Client, *ServiceAccountFile, error) {
+	conf, err := google.JWTConfigFromJSON([]byte(data), compute.ComputeScope)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	f := &ServiceAccountFile{}
+	if err := json.Unmarshal([]byte(data), f); err != nil {
+		return nil, nil, err
+	}
+
+	return conf.Client(oauth2.NoContext), f, nil
+}
+
+func CloneInstanceTemplate(c *compute.Service, d Deploy) (string, error) {
 	s := compute.NewInstanceTemplatesService(c)
 
-	// get template with existing name
-	oldTemplate, err := s.Get(projectId, oldName).Do()
+	// get base instance template
+	instanceTemplateBase, err := s.Get(d.Project, d.InstanceTemplateBase).Do()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("get instance template base '%v/%v': %v", d.Project, d.InstanceTemplateBase, err)
 	}
 
-	// remove existing user-data from old template if any
-	metadataItems := make([]*compute.MetadataItems, 0)
-	if oldTemplate.Properties != nil && oldTemplate.Properties.Metadata != nil {
-		for _, i := range oldTemplate.Properties.Metadata.Items {
-			if i.Key != "user-data" && i.Key != "shutdown-script" {
-				metadataItems = append(metadataItems, i)
-			}
-		}
+	// initialize new instance template
+	instanceTemplate := instanceTemplateBase
+	instanceTemplate.Name = d.InstanceTemplate
+	instanceTemplate.Description = instanceTemplateDescription
+
+	if instanceTemplate.Properties == nil {
+		instanceTemplate.Properties = &compute.InstanceProperties{}
 	}
 
-	// get the new user data ready and add to metadata
-	userDataItem := &compute.MetadataItems{
-		Key:   "user-data",
-		Value: stringPtr(string(cloudconfig)),
+	// add new tags
+	if instanceTemplate.Properties.Tags == nil {
+		instanceTemplate.Properties.Tags = &compute.Tags{}
+		instanceTemplate.Properties.Tags.Items = make([]string, 0)
 	}
-	metadataItems = append(metadataItems, userDataItem)
-
-	// create shutdown script and add to metadata
-	// The main process inside the container will receive SIGTERM, and after a grace period, SIGKILL.
-	// https://cloud.google.com/compute/docs/shutdownscript#limitations
-	// On-demand instances: 90 seconds after you stop or delete an instance
-	// Preemptible instances: 30 seconds after instance preemption begins
-	shutdownScriptItem := &compute.MetadataItems{
-		Key:   "shutdown-script",
-		Value: stringPtr(string(shutdownScript)),
+	for _, v := range d.Tags {
+		instanceTemplate.Properties.Tags.Items = append(instanceTemplate.Properties.Tags.Items, v)
 	}
-	metadataItems = append(metadataItems, shutdownScriptItem)
 
-	newTemplate := oldTemplate
-	newTemplate.Name = newName
-	newTemplate.Properties.Metadata.Items = metadataItems
+	// add new labels
+	if instanceTemplate.Properties.Labels == nil {
+		instanceTemplate.Properties.Labels = make(map[string]string)
+	}
+	for k, v := range d.Labels {
+		instanceTemplate.Properties.Labels[k] = v
+	}
 
-	op, err := s.Insert(projectId, newTemplate).Do()
+	// add new metadata keys
+	if instanceTemplate.Properties.Metadata == nil {
+		instanceTemplate.Properties.Metadata = &compute.Metadata{}
+		instanceTemplate.Properties.Metadata.Items = make([]*compute.MetadataItems, 0)
+	}
+	for k, v := range d.Metadata {
+		instanceTemplate.Properties.Metadata.Items = append(instanceTemplate.Properties.Metadata.Items,
+			newMetadataItem(k, v))
+	}
+
+	// startup script
+	if d.StartupScriptPath != "" {
+		instanceTemplate.Properties.Metadata.Items = append(instanceTemplate.Properties.Metadata.Items,
+			newMetadataItem("startup-script", d.startupScript))
+	}
+
+	// shutdown script
+	if d.ShutdownScriptPath != "" {
+		instanceTemplate.Properties.Metadata.Items = append(instanceTemplate.Properties.Metadata.Items,
+			newMetadataItem("shutdown-script", d.shutdownScript))
+	}
+
+	// cloud init
+	if d.CloudInitPath != "" {
+		instanceTemplate.Properties.Metadata.Items = append(instanceTemplate.Properties.Metadata.Items,
+			newMetadataItem("user-data", d.cloudInit))
+	}
+
+	op, err := s.Insert(d.Project, instanceTemplate).Do()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("save instance template: %v", err)
 	}
 
 	// wait until ready
+	retry := 0
 	for {
-		_, err := s.Get(projectId, newName).Do()
+		_, err := s.Get(d.Project, d.InstanceTemplate).Do()
 		if err != nil && isNotReadyErr(err) {
 			time.Sleep(2 * time.Second)
+			retry++
+			if retry > 10 {
+				return "", fmt.Errorf("get saved instance template: too many retries")
+			}
 			continue
+
 		} else if err != nil {
-			return "", err
+			return "", fmt.Errorf("get saved instance template: %v", err)
 		} else if err == nil {
 			return op.TargetLink, nil
 		}
 	}
 }
 
-// https://cloud.google.com/compute/docs/instance-groups/rolling-out-updates-to-managed-instance-groups#starting_a_basic_rolling_update
-func StartRollingUpdate(c *computeBeta.Service, projectId, region, instanceGroup, instanceTemplateName, instanceTemplateURL string) error {
-	s := computeBeta.NewRegionInstanceGroupManagersService(c)
-
-	err := retryIfResourceNotReady(func() error {
-		ig, err := s.Get(projectId, region, instanceGroup).Do()
-		if err != nil {
-			return err
-		}
-
-		ig.InstanceTemplate = ""
-		ig.Versions = []*computeBeta.InstanceGroupManagerVersion{
-			{
-				InstanceTemplate: instanceTemplateURL,
-				Name:             instanceTemplateName,
-			},
-		}
-
-		ig.UpdatePolicy = &computeBeta.InstanceGroupManagerUpdatePolicy{
-			InstanceRedistributionType: "PROACTIVE",
-			MaxSurge:                   &computeBeta.FixedOrPercent{Fixed: 3},
-			MaxUnavailable:             &computeBeta.FixedOrPercent{Fixed: 0},
-			MinimalAction:              "REPLACE",
-			Type:                       "PROACTIVE",
-			MinReadySec:                10,
-		}
-
-		_, err = s.Update(projectId, region, instanceGroup, ig).Do()
-		return err
-	})
-	if err != nil {
-		return fmt.Errorf("StartRollingUpdate: %v", err)
+func newMetadataItem(key string, value string) *compute.MetadataItems {
+	return &compute.MetadataItems{
+		Key:   key,
+		Value: stringPtr(value),
 	}
-
-	return nil
 }
 
-func CleanupInstanceTemplates(c *compute.Service, projectId string) error {
+// https://cloud.google.com/compute/docs/instance-groups/rolling-out-updates-to-managed-instance-groups#starting_a_basic_rolling_update
+func StartRollingUpdate(c *computeBeta.Service, d Deploy, instanceTemplateURL string) error {
+	// projectId, region, instanceGroup, instanceTemplateName, instanceTemplateURL string) error {
+	s := computeBeta.NewRegionInstanceGroupManagersService(c)
+
+	ig, err := s.Get(d.Project, d.Region, d.InstanceGroup).Do()
+	if err != nil {
+		return fmt.Errorf("get instance group '%v/%v': %v", d.Project, d.InstanceGroup, err)
+	}
+
+	ig.Versions = []*computeBeta.InstanceGroupManagerVersion{
+		{
+			InstanceTemplate: instanceTemplateURL,
+			Name:             d.InstanceTemplate,
+		},
+	}
+
+	if ig.UpdatePolicy == nil {
+		ig.UpdatePolicy = &computeBeta.InstanceGroupManagerUpdatePolicy{}
+	}
+
+	// force the following fields
+	ig.UpdatePolicy.InstanceRedistributionType = "PROACTIVE"
+	ig.UpdatePolicy.Type = "PROACTIVE"
+	ig.UpdatePolicy.MinimalAction = "REPLACE"
+
+	// only set MinReadySec if empty
+	if ig.UpdatePolicy.MinReadySec == 0 {
+		ig.UpdatePolicy.MinReadySec = 10
+	}
+
+	// only set MaxSurge if empty
+	if ig.UpdatePolicy.MaxSurge == nil {
+		ig.UpdatePolicy.MaxSurge = &computeBeta.FixedOrPercent{Fixed: 2}
+	}
+
+	// only set MaxUnavailable if empty
+	if ig.UpdatePolicy.MaxUnavailable == nil {
+		ig.UpdatePolicy.MaxUnavailable = &computeBeta.FixedOrPercent{Fixed: 0}
+	}
+
+	// wait until ready
+	retry := 0
+	for {
+		_, err = s.Update(d.Project, d.Region, d.InstanceGroup, ig).Do()
+		if err != nil && isNotReadyErr(err) {
+			time.Sleep(2 * time.Second)
+			retry++
+			if retry > 10 {
+				return fmt.Errorf("update instance group: too many retries")
+			}
+			continue
+
+		} else if err != nil {
+			return fmt.Errorf("update instance group: %v", err)
+		} else if err == nil {
+			return nil
+		}
+	}
+}
+
+func CleanupInstanceTemplates(c *compute.Service, project string, after time.Duration) error {
 	s := compute.NewInstanceTemplatesService(c)
 
-	l, err := s.List(projectId).Do()
+	l, err := s.List(project).Do()
 	if err != nil {
 		return err
 	}
@@ -130,21 +214,31 @@ func CleanupInstanceTemplates(c *compute.Service, projectId string) error {
 	var wg sync.WaitGroup
 
 	for _, item := range l.Items {
+
+		// skip if this instance template was not created by us
+		if !strings.Contains(item.Description, instanceTemplateDescription) {
+			continue
+		}
+
+		// parse time and skip if the instance template is not old enough
 		t, err := time.Parse(time.RFC3339, item.CreationTimestamp)
 		if err != nil {
 			return err
 		}
 
-		if time.Now().UTC().Add(-30 * 24 * time.Hour).After(t) {
-			wg.Add(1)
-			go func(instanceTemplate string) {
-
-				// TODO delete docker image, too
-
-				s.Delete(projectId, instanceTemplate).Do()
-				wg.Done()
-			}(item.Name)
+		if !time.Now().UTC().After(t.UTC().Add(after)) {
+			continue
 		}
+
+		// actually delete the instance template
+		wg.Add(1)
+		go func(instanceTemplate string) {
+			defer wg.Done()
+			if _, err := s.Delete(project, instanceTemplate).Do(); err != nil && !isInUseByAnotherResource(err) {
+				LogWarning(err.Error(), nil)
+			}
+			Infof("Deleted old instance template '%v/%v'", project, instanceTemplate)
+		}(item.Name)
 	}
 
 	wg.Wait()
@@ -170,25 +264,10 @@ func isNotReadyErr(err error) bool {
 	return isReasonErr(err, "resourceNotReady")
 }
 
-func stringPtr(in string) *string {
-	return &in
+func isInUseByAnotherResource(err error) bool {
+	return isReasonErr(err, "resourceInUseByAnotherResource")
 }
 
-func retryIfResourceNotReady(fn func() error) error {
-	for i := 0; i < 20; i++ {
-
-		err := fn()
-		if err == nil {
-			return nil
-		}
-
-		if isNotReadyErr(err) {
-			time.Sleep(2 * time.Second)
-			continue
-		}
-
-		return err
-	}
-
-	return fmt.Errorf("too many retries")
+func stringPtr(in string) *string {
+	return &in
 }

@@ -26,6 +26,7 @@ func main() {
 		Fatalf("%v", err)
 	}
 
+	// Start deploy
 	var wg sync.WaitGroup
 	wg.Add(len(c.Deploys))
 	for _, deploy := range c.Deploys {

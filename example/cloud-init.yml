@@ -2,4 +2,6 @@
 
 runcmd:
   - echo "$(MY_SCRIPT_VAR) $PWD"
+  - sleep 10
+  - shutdown now
 

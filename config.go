@@ -7,7 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v2"
 )
@@ -73,7 +75,8 @@ func ReadConfigFile(path string) (io.ReadCloser, error) {
 }
 
 type Config struct {
-	Deploys []Deploy `yaml:"deploys"`
+	DeleteInstanceTemplatesAfter time.Duration // TODO
+	Deploys                      []Deploy      `yaml:"deploys"`
 }
 
 type Deploy struct {
@@ -89,7 +92,9 @@ type Deploy struct {
 	startupScript                    string
 	ShutdownScriptPath               string `yaml:"shutdown_script"`
 	shutdownScript                   string
-	ScriptVars                       map[string]string `yaml:"script_vars"`
+	CloudInitPath                    string `yaml:"cloud_init"`
+	cloudInit                        string
+	Vars                             map[string]string `yaml:"vars"`
 	Labels                           map[string]string `yaml:"labels"`
 	Metadata                         map[string]string `yaml:"metadata"`
 	Tags                             []string          `yaml:"tags"`
@@ -98,8 +103,13 @@ type Deploy struct {
 func ParseConfig(workingDir string, b io.Reader) (*Config, error) {
 	c := &Config{}
 	d := yaml.NewDecoder(b)
+	d.SetStrict(true)
 	if err := d.Decode(c); err != nil && err != io.EOF {
 		return nil, fmt.Errorf("config: %v", err)
+	}
+
+	if c.DeleteInstanceTemplatesAfter == 0 {
+		c.DeleteInstanceTemplatesAfter = 24 * time.Hour * 30 // 30 days
 	}
 
 	// expand env variables
@@ -143,14 +153,13 @@ func ParseConfig(workingDir string, b io.Reader) (*Config, error) {
 		}
 
 		dy.StartupScriptPath = expandShellRe(dy.StartupScriptPath, getEnv(nil))
-		if dy.StartupScriptPath == "" {
-			return nil, fmt.Errorf("deploy '%v' needs startup_script", dy.Name)
-		}
 
 		dy.ShutdownScriptPath = expandShellRe(dy.ShutdownScriptPath, getEnv(nil))
 
-		for k, v := range dy.ScriptVars {
-			dy.ScriptVars[k] = expandShellRe(v, getEnv(nil))
+		dy.CloudInitPath = expandShellRe(dy.CloudInitPath, getEnv(nil))
+
+		for k, v := range dy.Vars {
+			dy.Vars[k] = expandShellRe(v, getEnv(nil))
 		}
 
 		for k, v := range dy.Labels {
@@ -170,18 +179,28 @@ func ParseConfig(workingDir string, b io.Reader) (*Config, error) {
 	for i := range c.Deploys {
 		dy := &c.Deploys[i]
 
-		f, err := ioutil.ReadFile(filepath.Join(workingDir, dy.StartupScriptPath))
-		if err != nil {
-			return nil, fmt.Errorf("startup_script: %v", err)
+		if dy.StartupScriptPath != "" {
+			f, err := ioutil.ReadFile(filepath.Join(workingDir, dy.StartupScriptPath))
+			if err != nil {
+				return nil, fmt.Errorf("startup_script: %v", err)
+			}
+			dy.startupScript = expandMakeRe(string(f), getEnv(dy.Vars))
 		}
-		dy.startupScript = expandMakeRe(string(f), getEnv(dy.ScriptVars))
 
 		if dy.ShutdownScriptPath != "" {
-			f, err = ioutil.ReadFile(filepath.Join(workingDir, dy.ShutdownScriptPath))
+			f, err := ioutil.ReadFile(filepath.Join(workingDir, dy.ShutdownScriptPath))
 			if err != nil {
 				return nil, fmt.Errorf("shutdown_script: %v", err)
 			}
-			dy.shutdownScript = expandMakeRe(string(f), getEnv(dy.ScriptVars))
+			dy.shutdownScript = expandMakeRe(string(f), getEnv(dy.Vars))
+		}
+
+		if dy.CloudInitPath != "" {
+			f, err := ioutil.ReadFile(filepath.Join(workingDir, dy.CloudInitPath))
+			if err != nil {
+				return nil, fmt.Errorf("cloud_init: %v", err)
+			}
+			dy.cloudInit = expandMakeRe(string(f), getEnv(dy.Vars))
 		}
 	}
 
@@ -204,7 +223,7 @@ func getEnv(locals map[string]string) map[string]string {
 }
 
 var (
-	shellVarRe    = regexp.MustCompile(`\\?\${?([a-zA-Z]([a-zA-Z0-9-_]+[a-zA-Z0-9]|[a-zA-Z0-9]*))}?`)
+	shellVarRe    = regexp.MustCompile(`\\?\${?([a-zA-Z]([a-zA-Z0-9-_]+[a-zA-Z0-9]|[a-zA-Z0-9]*)(:\d(:\d)?)?)}?`)
 	makefileVarRe = regexp.MustCompile(`\\?\$\([a-zA-Z0-9_-]+\)`)
 )
 
@@ -217,7 +236,41 @@ func expandShellRe(str string, vars map[string]string) string {
 
 		x = strings.Trim(x, "${}")
 
-		return vars[strings.ToLower(x)]
+		if !strings.Contains(x, ":") {
+			return vars[strings.ToLower(x)]
+		}
+
+		// parse ${string:position[:length]} and truncate string
+		parts := strings.Split(x, ":")
+		switch len(parts) {
+		default:
+			fallthrough
+		case 1:
+			return vars[strings.ToLower(parts[0])]
+
+		case 2:
+			v := vars[strings.ToLower(parts[0])]
+
+			from, err := strconv.Atoi(parts[1])
+			if err != nil {
+				return v
+			}
+			return v[from:]
+
+		case 3:
+			v := vars[strings.ToLower(parts[0])]
+
+			from, err := strconv.Atoi(parts[1])
+			if err != nil {
+				return v
+			}
+
+			to, err := strconv.Atoi(parts[2])
+			if err != nil {
+				return v
+			}
+			return v[from : from+to]
+		}
 	})
 }
 

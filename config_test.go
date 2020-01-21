@@ -29,7 +29,8 @@ deploys:
   instance_template: instance-template-$BAR-${BAR}
   startup_script: ` + tmpFile.Name() + `
   shutdown_script: ` + tmpFile.Name() + `
-  script_vars:
+  cloud_init: ` + tmpFile.Name() + `
+  vars:
     scriptvarkey: scriptvarvalue-$BAR-${BAR} 
   labels:
     labelkey: labelvalue-$BAR-${BAR}
@@ -44,7 +45,7 @@ deploys:
 	require.NoError(t, err)
 
 	require.Len(t, c.Deploys, 1)
-	require.Len(t, c.Deploys[0].ScriptVars, 1)
+	require.Len(t, c.Deploys[0].Vars, 1)
 	require.Len(t, c.Deploys[0].Labels, 1)
 	require.Len(t, c.Deploys[0].Metadata, 1)
 	require.Len(t, c.Deploys[0].Tags, 1)
@@ -60,7 +61,9 @@ deploys:
 	assert.Equal(t, "Foo: $BAR FOO scriptvarvalue-FOO-FOO", c.Deploys[0].startupScript)
 	assert.Equal(t, tmpFile.Name(), c.Deploys[0].ShutdownScriptPath)
 	assert.Equal(t, "Foo: $BAR FOO scriptvarvalue-FOO-FOO", c.Deploys[0].shutdownScript)
-	assert.Equal(t, "scriptvarvalue-FOO-FOO", c.Deploys[0].ScriptVars["scriptvarkey"])
+	assert.Equal(t, tmpFile.Name(), c.Deploys[0].CloudInitPath)
+	assert.Equal(t, "Foo: $BAR FOO scriptvarvalue-FOO-FOO", c.Deploys[0].cloudInit)
+	assert.Equal(t, "scriptvarvalue-FOO-FOO", c.Deploys[0].Vars["scriptvarkey"])
 	assert.Equal(t, "labelvalue-FOO-FOO", c.Deploys[0].Labels["labelkey"])
 	assert.Equal(t, "metadatavalue-FOO-FOO", c.Deploys[0].Metadata["metadatakey"])
 	assert.Equal(t, "tagvalue-FOO-FOO", c.Deploys[0].Tags[0])
@@ -77,6 +80,17 @@ func TestExpandShellRe(t *testing.T) {
 
 	out := expandShellRe(in, vars)
 	assert.Equal(t, `bar bar bar abarb \$foo \${foo} a\${foo}b bar-bar bar-bar ba b`, out)
+}
+
+func TestShellReTruncate(t *testing.T) {
+	in := `${foo:0} ${foo:1} ${foo:7} ${foo:7:3} ${foo:1:1}`
+
+	vars := map[string]string{
+		"foo": "abcABC123ABCabc",
+	}
+
+	out := expandShellRe(in, vars)
+	assert.Equal(t, `abcABC123ABCabc bcABC123ABCabc 23ABCabc 23A b`, out)
 }
 
 func TestExpandMakeRe(t *testing.T) {
