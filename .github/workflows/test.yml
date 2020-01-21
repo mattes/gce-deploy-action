@@ -22,9 +22,9 @@ jobs:
         run: env
       - name: List directory
         run: ls -la
-      - name: GCE Deploy Test
-        uses: mattes/gce-deploy-action@master
-        with:
-          dir: example
-          config: deploy.yml
-          google_application_credentials: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+      #- name: GCE Deploy Test
+      #  uses: mattes/gce-deploy-action@master
+      #  with:
+      #    dir: example
+      #    config: deploy.yml
+      #    google_application_credentials: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
