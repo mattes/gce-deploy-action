@@ -7,7 +7,7 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-func Run(githubActionConfig *GithubActionConfig, config *Config, deploy Deploy) {
+func Run(githubActionConfig *GithubActionConfig, config *Config, deploy Deploy) error {
 
 	Infof("%v: Starting deploy", deploy.Name)
 
@@ -40,28 +40,26 @@ func Run(githubActionConfig *GithubActionConfig, config *Config, deploy Deploy) 
 	// create compute service client
 	computeService, err := compute.New(googleClient)
 	if err != nil {
-		Fatalf("%v", err)
+		return err
 	}
 
 	// create compute beta service client
 	computeBetaService, err := computeBeta.New(googleClient)
 	if err != nil {
-		Fatalf("%v", err)
+		return err
 	}
 
 	// clone instance template and update instance group
 	instanceTemplateURL, err := CloneInstanceTemplate(computeService, deploy)
 	if err != nil {
-		LogError(err.Error(), map[string]string{"name": deploy.Name})
-		return
+		return err
 	}
 
 	Infof("%v: Created new instance template: %v", deploy.Name, instanceTemplateURL)
 
 	// start rolling update via instance group manager
 	if err := StartRollingUpdate(computeBetaService, deploy, instanceTemplateURL); err != nil {
-		LogError(err.Error(), map[string]string{"name": deploy.Name})
-		return
+		return err
 	}
 
 	Infof("%v: Started rolling update with new instance template", deploy.Name)
@@ -71,4 +69,6 @@ func Run(githubActionConfig *GithubActionConfig, config *Config, deploy Deploy) 
 			LogWarning(err.Error(), map[string]string{"project": deploy.Project})
 		}
 	}
+
+	return nil
 }
