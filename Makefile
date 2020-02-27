@@ -1,8 +1,8 @@
 example:
-	go build
+	go build -mod vendor
 	INPUT_DIR=example \
 	INPUT_GOOGLE_APPLICATION_CREDENTIALS=.google_application_credentials.json \
-	GITHUB_RUN_NUMBER=48 \
+	GITHUB_RUN_NUMBER=107 \
 	GITHUB_SHA=13e82dd30df4e87118faa98712a5aebb0ab05c45 \
 	./gce-deploy-action
 

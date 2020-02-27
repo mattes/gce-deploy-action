@@ -144,12 +144,17 @@ func newMetadataItem(key string, value string) *compute.MetadataItems {
 
 // https://cloud.google.com/compute/docs/instance-groups/rolling-out-updates-to-managed-instance-groups#starting_a_basic_rolling_update
 func StartRollingUpdate(c *computeBeta.Service, d Deploy, instanceTemplateURL string) error {
-	// projectId, region, instanceGroup, instanceTemplateName, instanceTemplateURL string) error {
 	s := computeBeta.NewRegionInstanceGroupManagersService(c)
 
 	ig, err := s.Get(d.Project, d.Region, d.InstanceGroup).Do()
 	if err != nil {
 		return fmt.Errorf("get instance group '%v/%v': %v", d.Project, d.InstanceGroup, err)
+	}
+
+	// TODO consider making the following check a configuration flag
+	latestVersion := findLatestInstanceGroupManagerVersion(ig.Versions)
+	if latestVersion != "" && latestVersion >= d.InstanceTemplate {
+		return fmt.Errorf("update instance group: instance template '%v' is too old, because '%v' is the latest instance template.", d.InstanceTemplate, latestVersion)
 	}
 
 	ig.Versions = []*computeBeta.InstanceGroupManagerVersion{
@@ -270,4 +275,16 @@ func isInUseByAnotherResource(err error) bool {
 
 func stringPtr(in string) *string {
 	return &in
+}
+
+func findLatestInstanceGroupManagerVersion(versions []*computeBeta.InstanceGroupManagerVersion) (name string) {
+	latest := ""
+
+	for _, v := range versions {
+		if latest < v.Name {
+			latest = v.Name
+		}
+	}
+
+	return latest
 }
