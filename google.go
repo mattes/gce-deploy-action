@@ -173,20 +173,9 @@ func StartRollingUpdate(c *computeBeta.Service, d Deploy, instanceTemplateURL st
 	ig.UpdatePolicy.Type = "PROACTIVE"
 	ig.UpdatePolicy.MinimalAction = "REPLACE"
 
-	// only set MinReadySec if empty
-	if ig.UpdatePolicy.MinReadySec == 0 {
-		ig.UpdatePolicy.MinReadySec = 10
-	}
-
-	// only set MaxSurge if empty
-	if ig.UpdatePolicy.MaxSurge == nil {
-		ig.UpdatePolicy.MaxSurge = &computeBeta.FixedOrPercent{Fixed: 2}
-	}
-
-	// only set MaxUnavailable if empty
-	if ig.UpdatePolicy.MaxUnavailable == nil {
-		ig.UpdatePolicy.MaxUnavailable = &computeBeta.FixedOrPercent{Fixed: 0}
-	}
+	ig.UpdatePolicy.MinReadySec = 10
+	ig.UpdatePolicy.MaxSurge = &computeBeta.FixedOrPercent{Fixed: 5}
+	ig.UpdatePolicy.MaxUnavailable = &computeBeta.FixedOrPercent{Fixed: 0}
 
 	// wait until ready
 	retry := 0
