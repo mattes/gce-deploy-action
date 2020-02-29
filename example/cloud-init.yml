@@ -1,7 +1,8 @@
 #cloud-config
 
 runcmd:
-  - echo "$(MY_SCRIPT_VAR) $PWD"
-  - sleep 10
+  - iptables -w -A INPUT -p tcp --dport 8080 -j ACCEPT
+  - docker run -d --name nginx -p 8080:80 nginx
+  - sleep 600 
   - shutdown now
 

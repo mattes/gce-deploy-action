@@ -157,6 +157,8 @@ func StartRollingUpdate(c *computeBeta.Service, d Deploy, instanceTemplateURL st
 		return fmt.Errorf("update instance group: instance template '%v' is too old, because '%v' is the latest instance template.", d.InstanceTemplate, latestVersion)
 	}
 
+	ig.InstanceTemplate = "" // make sure it's empty
+
 	ig.Versions = []*computeBeta.InstanceGroupManagerVersion{
 		{
 			InstanceTemplate: instanceTemplateURL,
@@ -174,13 +176,15 @@ func StartRollingUpdate(c *computeBeta.Service, d Deploy, instanceTemplateURL st
 	ig.UpdatePolicy.MinimalAction = "REPLACE"
 
 	ig.UpdatePolicy.MinReadySec = 10
-	ig.UpdatePolicy.MaxSurge = &computeBeta.FixedOrPercent{Fixed: 5}
-	ig.UpdatePolicy.MaxUnavailable = &computeBeta.FixedOrPercent{Fixed: 0}
+	ig.UpdatePolicy.MaxSurge = &computeBeta.FixedOrPercent{Fixed: 3}
+
+	// force field "Fixed", because zero values are omitted in API requests otherwise
+	ig.UpdatePolicy.MaxUnavailable = &computeBeta.FixedOrPercent{Fixed: 0, ForceSendFields: []string{"Fixed"}}
 
 	// wait until ready
 	retry := 0
 	for {
-		_, err = s.Update(d.Project, d.Region, d.InstanceGroup, ig).Do()
+		_, err = s.Patch(d.Project, d.Region, d.InstanceGroup, ig).Do()
 		if err != nil && isNotReadyErr(err) {
 			time.Sleep(2 * time.Second)
 			retry++
