@@ -153,7 +153,7 @@ func StartRollingUpdate(c *computeBeta.Service, d Deploy, instanceTemplateURL st
 
 	// TODO consider making the following check a configuration flag
 	latestVersion := findLatestInstanceGroupManagerVersion(ig.Versions)
-	if latestVersion != "" && latestVersion >= d.InstanceTemplate {
+	if latestVersion != "" && !VersionLessThan(latestVersion, d.InstanceTemplate) {
 		return fmt.Errorf("update instance group: instance template '%v' is too old, because '%v' is the latest instance template.", d.InstanceTemplate, latestVersion)
 	}
 
