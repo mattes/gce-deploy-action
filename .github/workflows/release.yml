@@ -27,7 +27,6 @@ jobs:
           prerelease: false
 
       - name: Upload linux.amd64
-        id: upload-release-asset 
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -38,7 +37,6 @@ jobs:
           asset_content_type: application/octet-stream
 
       - name: Upload darwin.amd64
-        id: upload-release-asset 
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
