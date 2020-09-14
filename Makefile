@@ -1,10 +1,10 @@
 example:
 	go build -mod vendor
-	INPUT_DIR=example \
+	(cd example && \
 	INPUT_GOOGLE_APPLICATION_CREDENTIALS=.google_application_credentials.json \
 	GITHUB_RUN_NUMBER=126 \
 	GITHUB_SHA=13e82dd30df4e87118faa98712a5aebb0ab05c45 \
-	./gce-deploy-action
+	../gce-deploy-action)
 
 github-action:
 	docker build -t mattes/gce-deploy-action .

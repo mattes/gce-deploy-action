@@ -23,7 +23,7 @@ func main() {
 	}
 	defer f.Close()
 
-	c, err := ParseConfig(gc.Dir, f)
+	c, err := ParseConfig(f)
 	if err != nil {
 		Fatalf("%v", err)
 	}

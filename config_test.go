@@ -41,7 +41,7 @@ deploys:
 `
 
 	environ = append(environ, "BAR=FOO")
-	c, err := ParseConfig("", strings.NewReader(config))
+	c, err := ParseConfig(strings.NewReader(config))
 	require.NoError(t, err)
 
 	require.Len(t, c.Deploys, 1)

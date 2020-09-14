@@ -85,7 +85,6 @@ deploys:
 
 | Variable                         | Description                                                                 |
 |----------------------------------|-----------------------------------------------------------------------------|
-| `dir`                            | Working directory. Defaults to root directory of repository.                |
 | `config`                         | Path to config file. Default `deploy.yml` or `deploy.yaml`.                 |
 | `google_application_credentials` | Either a path or the contents of a Service Account JSON Key.                |
 

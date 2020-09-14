@@ -17,7 +17,6 @@ import (
 var environ = os.Environ()
 
 type GithubActionConfig struct {
-	Dir                              string
 	Config                           string
 	GoogleApplicationCredentials     string
 	googleApplicationCredentialsData string
@@ -26,25 +25,14 @@ type GithubActionConfig struct {
 func ReadGithubActionConfig() (*GithubActionConfig, error) {
 	c := &GithubActionConfig{}
 
-	c.Dir = os.Getenv("INPUT_DIR")
-	if c.Dir == "" {
-		wd, err := os.Getwd()
-		if err != nil {
-			return nil, err
-		}
-		c.Dir = wd
-	}
-
 	c.Config = os.Getenv("INPUT_CONFIG")
 	if c.Config == "" {
-		c.Config = filepath.Join(c.Dir, "deploy.yml")
-	} else {
-		c.Config = filepath.Join(c.Dir, c.Config)
+		c.Config = "deploy.yml"
 	}
 
 	// read Google Application Credentials if this is a path
 	c.GoogleApplicationCredentials = os.Getenv("INPUT_GOOGLE_APPLICATION_CREDENTIALS")
-	f, err := ioutil.ReadFile(filepath.Join(c.Dir, c.GoogleApplicationCredentials))
+	f, err := ioutil.ReadFile(c.GoogleApplicationCredentials)
 	if err == nil {
 		c.googleApplicationCredentialsData = string(f)
 	} else {
@@ -100,7 +88,7 @@ type Deploy struct {
 	Tags                             []string          `yaml:"tags"`
 }
 
-func ParseConfig(workingDir string, b io.Reader) (*Config, error) {
+func ParseConfig(b io.Reader) (*Config, error) {
 	c := &Config{}
 	d := yaml.NewDecoder(b)
 	d.SetStrict(true)
@@ -125,7 +113,7 @@ func ParseConfig(workingDir string, b io.Reader) (*Config, error) {
 
 		dy.GoogleApplicationCredentials = expandShellRe(dy.GoogleApplicationCredentials, getEnv(nil))
 
-		f, err := ioutil.ReadFile(filepath.Join(workingDir, dy.GoogleApplicationCredentials))
+		f, err := ioutil.ReadFile(dy.GoogleApplicationCredentials)
 		if err == nil {
 			dy.googleApplicationCredentialsData = string(f)
 		} else {
@@ -180,7 +168,7 @@ func ParseConfig(workingDir string, b io.Reader) (*Config, error) {
 		dy := &c.Deploys[i]
 
 		if dy.StartupScriptPath != "" {
-			f, err := ioutil.ReadFile(filepath.Join(workingDir, dy.StartupScriptPath))
+			f, err := ioutil.ReadFile(dy.StartupScriptPath)
 			if err != nil {
 				return nil, fmt.Errorf("startup_script: %v", err)
 			}
@@ -188,7 +176,7 @@ func ParseConfig(workingDir string, b io.Reader) (*Config, error) {
 		}
 
 		if dy.ShutdownScriptPath != "" {
-			f, err := ioutil.ReadFile(filepath.Join(workingDir, dy.ShutdownScriptPath))
+			f, err := ioutil.ReadFile(dy.ShutdownScriptPath)
 			if err != nil {
 				return nil, fmt.Errorf("shutdown_script: %v", err)
 			}
@@ -196,7 +184,7 @@ func ParseConfig(workingDir string, b io.Reader) (*Config, error) {
 		}
 
 		if dy.CloudInitPath != "" {
-			f, err := ioutil.ReadFile(filepath.Join(workingDir, dy.CloudInitPath))
+			f, err := ioutil.ReadFile(dy.CloudInitPath)
 			if err != nil {
 				return nil, fmt.Errorf("cloud_init: %v", err)
 			}
