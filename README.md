@@ -3,27 +3,9 @@
 Github action to simplify deploys to Google Compute Engine. The action will perform
 a rolling update with a new Instance Template using the Instance Group Manager.
 
+**tldr:** This action will...
 
-## Concept
-
-**Managed instance groups** support stateless apps that don't depend on the 
-specific state of the underlying VM instances to run. This enables features
-like autoscaling and autohealing, where the managed instance group can delete
-and recreate instances automatically. [Read more](https://cloud.google.com/compute/docs/instance-groups/creating-groups-of-managed-instances)
-
-**Google Cloud Load Balancer** can use an instance group as a backend service to
-distribute traffic across VM instances. [Read more](https://cloud.google.com/load-balancing/docs/backend-service#backend_services_and_autoscaled_managed_instance_groups)
-
-Using the [Container-Optimized OS](https://cloud.google.com/container-optimized-os/)
-and [cloud-init](https://cloud.google.com/container-optimized-os/docs/how-to/create-configure-instance#using_cloud-init), 
-which can be set in the **Instance Template**, additional configuration can be applied when the instance boots.
-Alternativaly [startup scripts](https://cloud.google.com/compute/docs/startupscript) can be used
-to run scripts at boot time. [Read more](https://cloud.google.com/container-optimized-os/docs/how-to/create-configure-instance#configuring_an_instance)
-
-
-**tldr** This action will:
-
-1) Clone an existing instance template (using it as base).
+1) Clone an existing instance template (using it as a base).
 2) Update metadata config of the newly created instance template to run a startup script.
 3) Tell the instance group manager to perform a rolling update with the new instance template.
 
@@ -98,3 +80,11 @@ with:
   google_application_credentials: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
 ```
 
+
+## References
+
+* [Managed Instance Groups](https://cloud.google.com/compute/docs/instance-groups/creating-groups-of-managed-instances)
+* [Container-Optimized OS](https://cloud.google.com/container-optimized-os/)
+* [cloud-init](https://cloud.google.com/container-optimized-os/docs/how-to/create-configure-instance#using_cloud-init)
+* [startup scripts](https://cloud.google.com/compute/docs/startupscript)
+* [Configuring an Instance](https://cloud.google.com/container-optimized-os/docs/how-to/create-configure-instance#configuring_an_instance)
