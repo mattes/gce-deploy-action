@@ -36,7 +36,7 @@ or use a tool like [Terraform](https://www.terraform.io).
 * Create a base [instance template](https://cloud.google.com/compute/docs/instance-templates/) to be cloned by this action.
 * Create a managed [instance group](https://cloud.google.com/compute/docs/instance-groups/). Please note that currently **only regional instance groups** are supported.
 * Set up [Load Balancer](https://cloud.google.com/load-balancing/docs/) to use instance group as backend service.
-* Create Service Account with Roles "Compute Admin" and "Service Account User" and export a new JSON key.
+* Create Service Account with Roles `Compute Admin` and `Service Account User` and export a new JSON key.
 
 
 ## Config
