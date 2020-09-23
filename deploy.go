@@ -62,8 +62,8 @@ func Run(githubActionConfig *GithubActionConfig, config *Config, deploy Deploy) 
 
 	Infof("%v: Started rolling deploy for instance group '%v/%v'", deploy.Name, deploy.Project, deploy.InstanceGroup)
 
-	if config.DeleteInstanceTemplatesAfter > 0 {
-		if err := CleanupInstanceTemplates(computeService, deploy.Project, config.DeleteInstanceTemplatesAfter); err != nil {
+	if config.deleteInstanceTemplatesAfter > 0 {
+		if err := CleanupInstanceTemplates(computeService, deploy.Project, config.deleteInstanceTemplatesAfter); err != nil {
 			LogWarning(err.Error(), map[string]string{"project": deploy.Project})
 		}
 	}

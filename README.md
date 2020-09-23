@@ -8,7 +8,6 @@ This action will...
 2) Update metadata config of the newly created instance template to run a startup script.
 3) Tell the instance group manager to perform a rolling update with the new instance template.
 
-
 ## Prerequisites
 
 Set up the following resources manually in the Cloud Console 
@@ -17,7 +16,6 @@ or use a tool like [Terraform](https://www.terraform.io).
 * Create a base [instance template](https://cloud.google.com/compute/docs/instance-templates/) to be cloned by this action.
 * Create a managed [instance group](https://cloud.google.com/compute/docs/instance-groups/). Please note that currently **only regional instance groups** are supported.
 * Create Service Account with Roles `Compute Admin` and `Service Account User` and export a new JSON key.
-
 
 ## Config
 
@@ -41,6 +39,7 @@ Environment variables (syntax `$FOO` or `${FOO}`) used in this file are replaced
 | `deploys.*.labels`                         | A set of key/value label pairs to assign to instances.                                                                                                                                             |
 | `deploys.*.metadata`                       | A set of key/value metadata pairs to make available from within instances.                                                                                                                         |
 | `deploys.*.tags`                           | A list of tags to assign to instances.                                                                                                                                                             |
+| `delete_instance_templates_after`          | Delete old instance templates after duration, default '336h' (14 days). Set to 'false' to disable.                                                                                                 |
 
 
 ### Example deploy.yml

@@ -63,8 +63,9 @@ func ReadConfigFile(path string) (io.ReadCloser, error) {
 }
 
 type Config struct {
-	DeleteInstanceTemplatesAfter time.Duration // TODO
-	Deploys                      []Deploy      `yaml:"deploys"`
+	DeleteInstanceTemplatesAfter string `yaml:"delete_instance_templates_after"`
+	deleteInstanceTemplatesAfter time.Duration
+	Deploys                      []Deploy `yaml:"deploys"`
 }
 
 type Deploy struct {
@@ -96,8 +97,19 @@ func ParseConfig(b io.Reader) (*Config, error) {
 		return nil, fmt.Errorf("config: %v", err)
 	}
 
-	if c.DeleteInstanceTemplatesAfter == 0 {
-		c.DeleteInstanceTemplatesAfter = 24 * time.Hour * 30 // 30 days
+	// if DeleteInstanceTemplatesAfter is not set to false
+	if c.DeleteInstanceTemplatesAfter != "false" {
+		// parse and set duration if set
+		if c.DeleteInstanceTemplatesAfter != "" {
+			duration, err := time.ParseDuration(c.DeleteInstanceTemplatesAfter)
+			if err != nil {
+				return nil, err
+			}
+			c.deleteInstanceTemplatesAfter = duration
+		} else {
+			// or set default
+			c.deleteInstanceTemplatesAfter = 24 * time.Hour * 14 // 14 days
+		}
 	}
 
 	// expand env variables
