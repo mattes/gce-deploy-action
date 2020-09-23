@@ -9,7 +9,7 @@ jobs:
       with:
         go-version: 1.13
     - name: Check out repo
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: go test
       run: go test -mod vendor -v .
 
@@ -25,6 +25,5 @@ jobs:
       #- name: GCE Deploy Test
       #  uses: mattes/gce-deploy-action@master
       #  with:
-      #    dir: example
+      #    creds: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
       #    config: deploy.yml
-      #    google_application_credentials: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}

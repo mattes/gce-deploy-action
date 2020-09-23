@@ -22,7 +22,7 @@ func TestParseConfig(t *testing.T) {
 deploys:
 - name: name-$BAR-${BAR}
   project: project-$BAR-${BAR}
-  google_application_credentials: google-application-credentials-$BAR-${BAR}
+  creds: google-application-credentials-$BAR-${BAR}
   region: region-$BAR-${BAR}
   instance_group: instance-group-$BAR-${BAR}
   instance_template_base: instance-template-base-$BAR-${BAR}
