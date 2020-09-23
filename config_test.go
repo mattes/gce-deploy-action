@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,6 +20,7 @@ func TestParseConfig(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	config := `
+delete_instance_templates_after: 14h
 deploys:
 - name: name-$BAR-${BAR}
   project: project-$BAR-${BAR}
@@ -43,6 +45,9 @@ deploys:
 	environ = append(environ, "BAR=FOO")
 	c, err := ParseConfig(strings.NewReader(config))
 	require.NoError(t, err)
+
+	assert.Equal(t, "14h", c.DeleteInstanceTemplatesAfter)
+	assert.Equal(t, 14*time.Hour, c.deleteInstanceTemplatesAfter)
 
 	require.Len(t, c.Deploys, 1)
 	require.Len(t, c.Deploys[0].Vars, 1)
