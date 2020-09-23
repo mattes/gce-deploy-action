@@ -9,8 +9,6 @@ import (
 
 func Run(githubActionConfig *GithubActionConfig, config *Config, deploy Deploy) error {
 
-	Infof("%v: Starting deploy", deploy.Name)
-
 	// create google client with application credentials from deploy config or
 	// github action config
 	var googleClient *http.Client
@@ -55,14 +53,14 @@ func Run(githubActionConfig *GithubActionConfig, config *Config, deploy Deploy) 
 		return err
 	}
 
-	Infof("%v: Created new instance template: %v", deploy.Name, instanceTemplateURL)
+	Infof("%v: Created new instance template '%v/%v'", deploy.Name, deploy.Project, deploy.InstanceTemplate)
 
 	// start rolling update via instance group manager
 	if err := StartRollingUpdate(computeBetaService, deploy, instanceTemplateURL); err != nil {
 		return err
 	}
 
-	Infof("%v: Started rolling update with new instance template", deploy.Name)
+	Infof("%v: Started rolling deploy for instance group '%v/%v'", deploy.Name, deploy.Project, deploy.InstanceGroup)
 
 	if config.DeleteInstanceTemplatesAfter > 0 {
 		if err := CleanupInstanceTemplates(computeService, deploy.Project, config.DeleteInstanceTemplatesAfter); err != nil {
