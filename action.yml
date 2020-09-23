@@ -3,7 +3,7 @@ description: "Deploy to Google Cloud Compute Engine"
 
 branding:
   icon: "upload-cloud"
-  color: "orange"
+  color: "red"
 
 runs:
   using: "docker"
