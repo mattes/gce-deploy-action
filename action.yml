@@ -5,21 +5,28 @@ branding:
   icon: "upload-cloud"
   color: "red"
 
-runs:
-  using: "docker"
-  image: "Dockerfile"
-
 inputs:
-  dir:
-    description: "Working directory. Defaults to root directory of repository."
-    required: false
-    default: ""
+  creds:
+    description: "Either a path or the contents of a Service Account JSON Key."
+    required: true
   config:
     description: "Path to config file"
     required: false
     default: "deploy.yml" # or deploy.yaml
-  google_application_credentials:
-    description: "Either a path or the contents of a Service Account JSON Key."
-    required: false
-    default: ""
+
+  using: "composite"
+  steps:
+    - name: Download gce-deploy-action
+      shell: bash
+      run: |
+        cd /tmp
+        export GCE_DEPLOY_VERSION=3.0.0
+        wget https://github.com/mattes/gce-deploy-action/releases/download/v${GCE_DEPLOY_VERSION}/gce-deploy-action.linux.amd64
+        chmod +x gce-deploy-action.linux.amd64
+        mv gce-deploy-action.linux.amd64 /usr/local/bin/gce-deploy-action
+
+    - name: Start rolling deploy
+      shell: bash
+      run: |
+        INPUT_CREDS='${{ inputs.creds }}' INPUT_CONFIG='${{ inputs.config }}' gce-deploy-action
 

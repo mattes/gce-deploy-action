@@ -65,8 +65,8 @@ deploys:
 
 | Variable             | Description                                                                 |
 |----------------------|-----------------------------------------------------------------------------|
-| `config`             | Path to config file. Default `deploy.yml` or `deploy.yaml`.                 |
 | `creds`              | Either a path or the contents of a Service Account JSON Key.                |
+| `config`             | Path to config file. Default `deploy.yml` or `deploy.yaml`.                 |
 
 
 ## Example Usage

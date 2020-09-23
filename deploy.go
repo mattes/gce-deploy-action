@@ -17,7 +17,7 @@ func Run(githubActionConfig *GithubActionConfig, config *Config, deploy Deploy) 
 	if deploy.googleApplicationCredentialsData != "" {
 		client, f, err := NewClientFromJSON(deploy.googleApplicationCredentialsData)
 		if err != nil {
-			Fatalf("Invalid deploys.*.google_application_credentials: %v", err)
+			Fatalf("Invalid deploys.*.creds: %v", err)
 		}
 		googleClient = client
 
@@ -28,7 +28,7 @@ func Run(githubActionConfig *GithubActionConfig, config *Config, deploy Deploy) 
 	} else {
 		client, f, err := NewClientFromJSON(githubActionConfig.googleApplicationCredentialsData)
 		if err != nil {
-			Fatalf("Invalid github_action.google_application_credentials: %v", err)
+			Fatalf("Invalid github_action.creds: %v", err)
 		}
 		googleClient = client
 
