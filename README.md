@@ -1,9 +1,8 @@
 # Deploy to Google Compute Engine
 
-Github action to simplify deploys to Google Compute Engine. The action will perform
-a rolling update with a new Instance Template using the Instance Group Manager.
+Github action to simplify deploys to Google Compute Engine. 
 
-**tldr:** This action will...
+This action will...
 
 1) Clone an existing instance template (using it as a base).
 2) Update metadata config of the newly created instance template to run a startup script.
@@ -17,7 +16,6 @@ or use a tool like [Terraform](https://www.terraform.io).
 
 * Create a base [instance template](https://cloud.google.com/compute/docs/instance-templates/) to be cloned by this action.
 * Create a managed [instance group](https://cloud.google.com/compute/docs/instance-groups/). Please note that currently **only regional instance groups** are supported.
-* Set up [Load Balancer](https://cloud.google.com/load-balancing/docs/) to use instance group as backend service.
 * Create Service Account with Roles `Compute Admin` and `Service Account User` and export a new JSON key.
 
 
@@ -31,7 +29,7 @@ Environment variables (syntax `$FOO` or `${FOO}`) used in this file are replaced
 |--------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `deploys.*.name`                           | ***Required*** Name of the deploy                                                                                                                                                                  |
 | `deploys.*.project`                        | Name of the Google Cloud project                                                                                                                                                                   |
-| `deploys.*.google_application_credentials` | Either a path or the contents of a Service Account JSON Key. Required, if not specified in Github action.                                                                                          |
+| `deploys.*.creds`                          | Either a path or the contents of a Service Account JSON Key. Required, if not specified in Github action.                                                                                          |
 | `deploys.*.region`                         | ***Required*** Region of the instance group.                                                                                                                                                       |
 | `deploys.*.instance_group`                 | ***Required*** Name of the instance group.                                                                                                                                                         |
 | `deploys.*.instance_template_base`         | ***Required*** Instance template to be used as base.                                                                                                                                               |
@@ -65,10 +63,10 @@ deploys:
 
 ## Github Action Inputs
 
-| Variable                         | Description                                                                 |
-|----------------------------------|-----------------------------------------------------------------------------|
-| `config`                         | Path to config file. Default `deploy.yml` or `deploy.yaml`.                 |
-| `google_application_credentials` | Either a path or the contents of a Service Account JSON Key.                |
+| Variable             | Description                                                                 |
+|----------------------|-----------------------------------------------------------------------------|
+| `config`             | Path to config file. Default `deploy.yml` or `deploy.yaml`.                 |
+| `creds`              | Either a path or the contents of a Service Account JSON Key.                |
 
 
 ## Example Usage
@@ -76,8 +74,8 @@ deploys:
 ```
 uses: mattes/gce-deploy-action@master
 with:
+  creds: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
   config: production.yml
-  google_application_credentials: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
 ```
 
 

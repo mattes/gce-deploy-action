@@ -31,7 +31,7 @@ func ReadGithubActionConfig() (*GithubActionConfig, error) {
 	}
 
 	// read Google Application Credentials if this is a path
-	c.GoogleApplicationCredentials = os.Getenv("INPUT_GOOGLE_APPLICATION_CREDENTIALS")
+	c.GoogleApplicationCredentials = os.Getenv("INPUT_CREDS")
 	f, err := ioutil.ReadFile(c.GoogleApplicationCredentials)
 	if err == nil {
 		c.googleApplicationCredentialsData = string(f)
@@ -70,7 +70,7 @@ type Config struct {
 type Deploy struct {
 	Name                             string `yaml:"name"`
 	Project                          string `yaml:"project"`
-	GoogleApplicationCredentials     string `yaml:"google_application_credentials"`
+	GoogleApplicationCredentials     string `yaml:"creds"`
 	googleApplicationCredentialsData string
 	Region                           string `yaml:"region"`
 	InstanceGroup                    string `yaml:"instance_group"`
