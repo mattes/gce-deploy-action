@@ -74,7 +74,7 @@ Github sets a bunch of [default environment variables](https://help.github.com/e
 
 | Variable             | Description                                                                 |
 |----------------------|-----------------------------------------------------------------------------|
-| `creds`              | Either a path or the contents of a Service Account JSON Key.                |
+| `creds`              | ***Required*** Either a path or the contents of a Service Account JSON Key. |
 | `config`             | Path to config file. Default `deploy.yml` or `deploy.yaml`.                 |
 
 
