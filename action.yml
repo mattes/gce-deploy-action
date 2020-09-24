@@ -21,10 +21,10 @@ runs:
       shell: bash
       run: |
         cd /tmp
-        export GCE_DEPLOY_VERSION=3.0.0
-        wget https://github.com/mattes/gce-deploy-action/releases/download/v${GCE_DEPLOY_VERSION}/gce-deploy-action.linux.amd64
-        chmod +x gce-deploy-action.linux.amd64
-        mv gce-deploy-action.linux.amd64 /usr/local/bin/gce-deploy-action
+        export GCE_DEPLOY_VERSION=3.0.1
+        wget --quiet https://github.com/mattes/gce-deploy-action/releases/download/v${GCE_DEPLOY_VERSION}/gce-deploy-action.linux.amd64
+        sudo mv gce-deploy-action.linux.amd64 /usr/local/bin/gce-deploy-action
+        sudo chmod +x /usr/local/bin/gce-deploy-action
 
     - name: Start rolling deploy
       shell: bash
