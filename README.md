@@ -17,11 +17,29 @@ or use a tool like [Terraform](https://www.terraform.io).
 * Create a managed [instance group](https://cloud.google.com/compute/docs/instance-groups/). Please note that currently **only regional instance groups** are supported.
 * Create Service Account with Roles `Compute Admin` and `Service Account User` and export a new JSON key.
 
-## Config
+
+## deploy.yml
 
 By default this action expects a `deploy.yml` in the root directory of the repository.
-Environment variables (syntax `$FOO` or `${FOO}`) used in this file are replaced automatically. 
-[List of default variables.](https://help.github.com/en/actions/automating-your-workflow-with-github-actions/using-environment-variables#default-environment-variables)
+Here is an example:
+
+```yaml
+deploys:
+  - name: my-app-deploy
+    region: us-central1
+    instance_group: my-app-instance-group
+    instance_template_base: my-app-instance-template-base
+    instance_template: my-app-$GITHUB_RUN_NUMBER-$GITHUB_SHA
+    cloud_init: cloud-init.yml # see example dir
+    labels:
+      github-sha: $GITHUB_SHA
+    tags:
+      - my-tag123
+
+delete_instance_templates_after: false
+```
+
+### Config Reference
 
 | Variable                                   | Description                                                                                                                                                                                        |
 |--------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -35,29 +53,21 @@ Environment variables (syntax `$FOO` or `${FOO}`) used in this file are replaced
 | `deploys.*.startup_script`                 | Path to script to run when VM boots. [Read more](https://cloud.google.com/compute/docs/startupscript)                                                                                              |
 | `deploys.*.shutdown_script`                | Path to script to run when VM shuts down. [Read more](https://cloud.google.com/compute/docs/shutdownscript)                                                                                        |
 | `deploys.*.cloud_init`                     | Path to cloud-init file. [Read more](https://cloud.google.com/container-optimized-os/docs/how-to/create-configure-instance#using_cloud-init)                                                       |
-| `deploys.*.vars`                           | A set of additional key/value variables which will be available as variables (syntax `$(FOO)`) in either startup_script, shutdown_script or cloud_init. Vars take precedence over ENV vars.        |
 | `deploys.*.labels`                         | A set of key/value label pairs to assign to instances.                                                                                                                                             |
 | `deploys.*.metadata`                       | A set of key/value metadata pairs to make available from within instances.                                                                                                                         |
 | `deploys.*.tags`                           | A list of tags to assign to instances.                                                                                                                                                             |
+| `deploys.*.vars`                           | A set of additional key/value variables which will be available in either startup_script, shutdown_script or cloud_init. They take precedence over ENV vars.                                       |
 | `delete_instance_templates_after`          | Delete old instance templates after duration, default '336h' (14 days). Set to 'false' to disable.                                                                                                 |
 
 
-### Example deploy.yml
+### Variables
 
-```yaml
+Environment variables can be used in `deploy.yml`, see example above. The syntax is `$FOO` or `${FOO}`.
 
-deploys:
-  - name: my-app-deploy
-    region: us-central1
-    instance_group: my-app-instance-group
-    instance_template_base: my-app-instance-template-base
-    instance_template: my-app-$GITHUB_RUN_NUMBER-$GITHUB_SHA
-    cloud_init: cloud-init.yml # see example dir
-    labels:
-      github-sha: $GITHUB_SHA
-    tags:
-      - my-tag123
-```
+Environment variables or `deploys.*.vars` can be used in the `startup_script`, `shutdown_script` or `cloud_init`, see [example](example/cloud-init.yml).
+The syntax is `$(FOO)` to not replace actual ENV vars.
+
+Github sets a bunch of [default environment variables](https://help.github.com/en/actions/automating-your-workflow-with-github-actions/using-environment-variables#default-environment-variables).
 
 
 ## Github Action Inputs
@@ -68,10 +78,10 @@ deploys:
 | `config`             | Path to config file. Default `deploy.yml` or `deploy.yaml`.                 |
 
 
-## Example Usage
+### Example Usage
 
 ```
-uses: mattes/gce-deploy-action@master
+uses: mattes/gce-deploy-action@v3
 with:
   creds: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
   config: production.yml

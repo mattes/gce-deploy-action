@@ -7,7 +7,7 @@ deploys:
     instance_template: github-action-instance-template-$GITHUB_RUN_NUMBER-${GITHUB_SHA:0:7}
     cloud_init: cloud-init.yml
     vars:
-      my_script_var: "The current directory is:"
+      string_var: "The current directory is:"
     labels:
       github_sha: $GITHUB_SHA
     tags:
