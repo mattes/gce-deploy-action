@@ -40,9 +40,19 @@ deploys:
     metadatakey: metadatavalue-$BAR-${BAR}
   tags:
     - tagvalue-$BAR-${BAR}
+  update_policy:
+    type: type-$BAR-${BAR}
+    minimal_action: minimal-action-$BAR-${BAR}
+    replacement_method: replacement-method-$BAR-${BAR}
+    min_ready_sec: $MIN_READY_SEC
+    max_surge: $MAX_SURGE
+    max_unavailable: $MAX_UNAVAILABLE
 `
 
 	environ = append(environ, "BAR=FOO")
+	environ = append(environ, "MIN_READY_SEC=2")
+	environ = append(environ, "MAX_SURGE=15%")
+	environ = append(environ, "MAX_UNAVAILABLE=14")
 	c, err := ParseConfig(strings.NewReader(config))
 	require.NoError(t, err)
 
@@ -72,6 +82,18 @@ deploys:
 	assert.Equal(t, "labelvalue-FOO-FOO", c.Deploys[0].Labels["labelkey"])
 	assert.Equal(t, "metadatavalue-FOO-FOO", c.Deploys[0].Metadata["metadatakey"])
 	assert.Equal(t, "tagvalue-FOO-FOO", c.Deploys[0].Tags[0])
+
+	assert.Equal(t, "type-FOO-FOO", c.Deploys[0].UpdatePolicy.Type)
+	assert.Equal(t, "minimal-action-FOO-FOO", c.Deploys[0].UpdatePolicy.MinimalAction)
+	assert.Equal(t, "replacement-method-FOO-FOO", c.Deploys[0].UpdatePolicy.ReplacementMethod)
+	assert.Equal(t, "2", c.Deploys[0].UpdatePolicy.MinReadySec)
+	assert.Equal(t, 2, c.Deploys[0].UpdatePolicy.minReadySec)
+	assert.Equal(t, "15%", c.Deploys[0].UpdatePolicy.MaxSurge)
+	assert.Equal(t, 15, c.Deploys[0].UpdatePolicy.maxSurge)
+	assert.Equal(t, true, c.Deploys[0].UpdatePolicy.maxSurgeInPercent)
+	assert.Equal(t, "14", c.Deploys[0].UpdatePolicy.MaxUnavailable)
+	assert.Equal(t, 14, c.Deploys[0].UpdatePolicy.maxUnavailable)
+	assert.Equal(t, false, c.Deploys[0].UpdatePolicy.maxUnavailableInPercent)
 }
 
 func TestExpandShellRe(t *testing.T) {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	computeBeta "google.golang.org/api/compute/v0.beta"
@@ -55,12 +56,22 @@ func Run(githubActionConfig *GithubActionConfig, config *Config, deploy Deploy) 
 
 	Infof("%v: Created new instance template '%v/%v'", deploy.Name, deploy.Project, deploy.InstanceTemplate)
 
+	maxSurge := fmt.Sprintf("%v", deploy.UpdatePolicy.maxSurge)
+	if deploy.UpdatePolicy.maxSurgeInPercent {
+		maxSurge += "%"
+	}
+	maxUnavailable := fmt.Sprintf("%v", deploy.UpdatePolicy.maxUnavailable)
+	if deploy.UpdatePolicy.maxUnavailableInPercent {
+		maxUnavailable += "%"
+	}
+
+	Infof("%v: Started rolling deploy for instance group '%v/%v' with Update Type: %v, Minimal Action: %v, Replacement Method: %v, Min Ready: %vsec, Max Surge: %v, Max Unavailable: %v",
+		deploy.Name, deploy.Project, deploy.InstanceGroup, deploy.UpdatePolicy.Type, deploy.UpdatePolicy.MinimalAction, deploy.UpdatePolicy.ReplacementMethod, deploy.UpdatePolicy.minReadySec, maxSurge, maxUnavailable)
+
 	// start rolling update via instance group manager
 	if err := StartRollingUpdate(computeBetaService, deploy, instanceTemplateURL); err != nil {
 		return err
 	}
-
-	Infof("%v: Started rolling deploy for instance group '%v/%v'", deploy.Name, deploy.Project, deploy.InstanceGroup)
 
 	if config.deleteInstanceTemplatesAfter > 0 {
 		if err := CleanupInstanceTemplates(computeService, deploy.Project, config.deleteInstanceTemplatesAfter); err != nil {

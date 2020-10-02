@@ -171,15 +171,24 @@ func StartRollingUpdate(c *computeBeta.Service, d Deploy, instanceTemplateURL st
 	}
 
 	// force the following fields
-	ig.UpdatePolicy.InstanceRedistributionType = "PROACTIVE"
-	ig.UpdatePolicy.Type = "PROACTIVE"
-	ig.UpdatePolicy.MinimalAction = "REPLACE"
+	ig.UpdatePolicy.Type = d.UpdatePolicy.Type
+	ig.UpdatePolicy.MinimalAction = d.UpdatePolicy.MinimalAction
+	ig.UpdatePolicy.ReplacementMethod = d.UpdatePolicy.ReplacementMethod
 
-	ig.UpdatePolicy.MinReadySec = 10
-	ig.UpdatePolicy.MaxSurge = &computeBeta.FixedOrPercent{Fixed: 3}
+	ig.UpdatePolicy.MinReadySec = int64(d.UpdatePolicy.minReadySec)
+	ig.UpdatePolicy.ForceSendFields = []string{"MinReadySec"}
 
-	// force field "Fixed", because zero values are omitted in API requests otherwise
-	ig.UpdatePolicy.MaxUnavailable = &computeBeta.FixedOrPercent{Fixed: 0, ForceSendFields: []string{"Fixed"}}
+	if d.UpdatePolicy.maxSurgeInPercent {
+		ig.UpdatePolicy.MaxSurge = &computeBeta.FixedOrPercent{Percent: int64(d.UpdatePolicy.maxSurge), ForceSendFields: []string{"Percent"}}
+	} else {
+		ig.UpdatePolicy.MaxSurge = &computeBeta.FixedOrPercent{Fixed: int64(d.UpdatePolicy.maxSurge), ForceSendFields: []string{"Fixed"}}
+	}
+
+	if d.UpdatePolicy.maxUnavailableInPercent {
+		ig.UpdatePolicy.MaxUnavailable = &computeBeta.FixedOrPercent{Percent: int64(d.UpdatePolicy.maxUnavailable), ForceSendFields: []string{"Percent"}}
+	} else {
+		ig.UpdatePolicy.MaxUnavailable = &computeBeta.FixedOrPercent{Fixed: int64(d.UpdatePolicy.maxUnavailable), ForceSendFields: []string{"Fixed"}}
+	}
 
 	// wait until ready
 	retry := 0

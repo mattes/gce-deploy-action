@@ -15,4 +15,6 @@ deploys:
       - app123
     metadata:
       github_run_number: $GITHUB_RUN_NUMBER
+    update_policy:
+      min_ready_sec: 20
 

@@ -87,6 +87,21 @@ type Deploy struct {
 	Labels                           map[string]string `yaml:"labels"`
 	Metadata                         map[string]string `yaml:"metadata"`
 	Tags                             []string          `yaml:"tags"`
+	UpdatePolicy                     UpdatePolicy      `yaml:"update_policy"`
+}
+
+type UpdatePolicy struct {
+	Type                    string `yaml:"type"`
+	ReplacementMethod       string `yaml:"replacement_method"`
+	MinimalAction           string `yaml:"minimal_action"`
+	MinReadySec             string `yaml:"min_ready_sec"`
+	minReadySec             int
+	MaxSurge                string `yaml:"max_surge"`
+	maxSurge                int
+	maxSurgeInPercent       bool
+	MaxUnavailable          string `yaml:"max_unavailable"`
+	maxUnavailable          int
+	maxUnavailableInPercent bool
 }
 
 func ParseConfig(b io.Reader) (*Config, error) {
@@ -172,6 +187,77 @@ func ParseConfig(b io.Reader) (*Config, error) {
 
 		for j := range dy.Tags {
 			dy.Tags[j] = expandShellRe(dy.Tags[j], getEnv(nil))
+		}
+
+		// expand vars in update policy
+		dy.UpdatePolicy.Type = expandShellRe(dy.UpdatePolicy.Type, getEnv(nil))
+		dy.UpdatePolicy.MinimalAction = expandShellRe(dy.UpdatePolicy.MinimalAction, getEnv(nil))
+		dy.UpdatePolicy.ReplacementMethod = expandShellRe(dy.UpdatePolicy.ReplacementMethod, getEnv(nil))
+		dy.UpdatePolicy.MinReadySec = expandShellRe(dy.UpdatePolicy.MinReadySec, getEnv(nil))
+		dy.UpdatePolicy.MaxSurge = expandShellRe(dy.UpdatePolicy.MaxSurge, getEnv(nil))
+		dy.UpdatePolicy.MaxUnavailable = expandShellRe(dy.UpdatePolicy.MaxUnavailable, getEnv(nil))
+
+		if strings.TrimSpace(dy.UpdatePolicy.Type) == "" {
+			dy.UpdatePolicy.Type = "PROACTIVE"
+		}
+
+		if strings.TrimSpace(dy.UpdatePolicy.MinimalAction) == "" {
+			dy.UpdatePolicy.MinimalAction = "REPLACE"
+		}
+
+		if strings.TrimSpace(dy.UpdatePolicy.ReplacementMethod) == "" {
+			dy.UpdatePolicy.ReplacementMethod = "SUBSTITUTE"
+		}
+
+		// parse update policy vars
+		if dy.UpdatePolicy.MinReadySec != "" {
+			minReadySec, err := strconv.Atoi(dy.UpdatePolicy.MinReadySec)
+			if err != nil {
+				return nil, fmt.Errorf("update_policy.min_ready_sec: %v", err)
+			}
+			dy.UpdatePolicy.minReadySec = minReadySec
+		} else {
+			dy.UpdatePolicy.minReadySec = 10 // set default
+		}
+
+		if dy.UpdatePolicy.MaxSurge != "" {
+			dy.UpdatePolicy.MaxSurge = strings.TrimSpace(dy.UpdatePolicy.MaxSurge)
+			if strings.HasSuffix(dy.UpdatePolicy.MaxSurge, "%") {
+				maxSurge, err := strconv.Atoi(strings.TrimSuffix(dy.UpdatePolicy.MaxSurge, "%"))
+				if err != nil {
+					return nil, fmt.Errorf("update_policy.max_surge: %v", err)
+				}
+				dy.UpdatePolicy.maxSurge = maxSurge
+				dy.UpdatePolicy.maxSurgeInPercent = true
+			} else {
+				maxSurge, err := strconv.Atoi(dy.UpdatePolicy.MaxSurge)
+				if err != nil {
+					return nil, fmt.Errorf("update_policy.max_surge: %v", err)
+				}
+				dy.UpdatePolicy.maxSurge = maxSurge
+			}
+		} else {
+			dy.UpdatePolicy.maxSurge = 3 // set default
+		}
+
+		if dy.UpdatePolicy.MaxUnavailable != "" {
+			dy.UpdatePolicy.MaxUnavailable = strings.TrimSpace(dy.UpdatePolicy.MaxUnavailable)
+			if strings.HasSuffix(dy.UpdatePolicy.MaxUnavailable, "%") {
+				maxUnavailable, err := strconv.Atoi(strings.TrimSuffix(dy.UpdatePolicy.MaxUnavailable, "%"))
+				if err != nil {
+					return nil, fmt.Errorf("update_policy.max_unavailable: %v", err)
+				}
+				dy.UpdatePolicy.maxUnavailable = maxUnavailable
+				dy.UpdatePolicy.maxUnavailableInPercent = true
+			} else {
+				maxUnavailable, err := strconv.Atoi(dy.UpdatePolicy.MaxUnavailable)
+				if err != nil {
+					return nil, fmt.Errorf("update_policy.max_unavailable: %v", err)
+				}
+				dy.UpdatePolicy.maxUnavailable = maxUnavailable
+			}
+		} else {
+			dy.UpdatePolicy.maxUnavailable = 0 // set default
 		}
 	}
 
