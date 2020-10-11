@@ -52,9 +52,9 @@ delete_instance_templates_after: false
 | `deploys.*.instance_group`                             | ***Required*** Name of the instance group.                                                                                                                                                                                                           |
 | `deploys.*.instance_template_base`                     | ***Required*** Instance template to be used as base.                                                                                                                                                                                                 |
 | `deploys.*.instance_template`                          | ***Required*** Name of the newly created instance template.                                                                                                                                                                                          |
-| `deploys.*.startup_script`                             | Path to script to run when VM boots. [Read more](https://cloud.google.com/compute/docs/startupscript)                                                                                                                                                |
-| `deploys.*.shutdown_script`                            | Path to script to run when VM shuts down. [Read more](https://cloud.google.com/compute/docs/shutdownscript)                                                                                                                                          |
-| `deploys.*.cloud_init`                                 | Path to cloud-init file. [Read more](https://cloud.google.com/container-optimized-os/docs/how-to/create-configure-instance#using_cloud-init)                                                                                                         |
+| `deploys.*.startup_script`                             | Path or URL to script to run when VM boots. [Read more](https://cloud.google.com/compute/docs/startupscript)                                                                                                                                         |
+| `deploys.*.shutdown_script`                            | Path or URL to script to run when VM shuts down. [Read more](https://cloud.google.com/compute/docs/shutdownscript)                                                                                                                                   |
+| `deploys.*.cloud_init`                                 | Path or URL to cloud-init file. [Read more](https://cloud.google.com/container-optimized-os/docs/how-to/create-configure-instance#using_cloud-init)                                                                                                  |
 | `deploys.*.labels`                                     | A set of key/value label pairs to assign to instances.                                                                                                                                                                                               |
 | `deploys.*.metadata`                                   | A set of key/value metadata pairs to make available from within instances.                                                                                                                                                                           |
 | `deploys.*.tags`                                       | A list of tags to assign to instances.                                                                                                                                                                                                               |
@@ -70,10 +70,16 @@ delete_instance_templates_after: false
 
 ### Variables
 
-Environment variables can be used in `deploy.yml`, see example above. The syntax is `$FOO` or `${FOO}`.
+Environment variables can be used in `deploy.yml`. The syntax is `$FOO` or `${FOO}` and supports
+substring extraction, i.e. `${GITHUB_SHA:0:7}`. 
+
+```
+${VAR:position} - Extracts substring from $VAR at "position"
+${VAR:position:length} - Extracts "length" characters of substring from $VAR at "position"
+```
 
 Environment variables or `deploys.*.vars` can be used in the `startup_script`, `shutdown_script` or `cloud_init`, see [example](example/cloud-init.yml).
-The syntax is `$(FOO)` to not replace actual ENV vars.
+The syntax is `${{FOO}}`.
 
 Github sets a bunch of [default environment variables](https://help.github.com/en/actions/automating-your-workflow-with-github-actions/using-environment-variables#default-environment-variables).
 
