@@ -95,7 +95,7 @@ Github sets a bunch of [default environment variables](https://help.github.com/e
 ### Example Usage
 
 ```
-uses: mattes/gce-deploy-action@v3
+uses: mattes/gce-deploy-action@v4
 with:
   creds: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
   config: production.yml
