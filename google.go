@@ -175,6 +175,8 @@ func StartRollingUpdate(c *computeBeta.Service, d Deploy, instanceTemplateURL st
 	ig.UpdatePolicy.MinimalAction = d.UpdatePolicy.MinimalAction
 	ig.UpdatePolicy.ReplacementMethod = d.UpdatePolicy.ReplacementMethod
 
+	ig.UpdatePolicy.NullFields = []string{"InstanceRedistributionType"}
+
 	ig.UpdatePolicy.MinReadySec = int64(d.UpdatePolicy.minReadySec)
 	ig.UpdatePolicy.ForceSendFields = []string{"MinReadySec"}
 

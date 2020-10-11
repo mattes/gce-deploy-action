@@ -3,8 +3,8 @@
 runcmd:
   - iptables -w -A INPUT -p tcp --dport 8080 -j ACCEPT
   - docker run -d --name nginx -p 8080:80 nginx
-  - echo $(GITHUB_SHA)
-  - echo $(string_var) $PWD 
+  - echo ${{GITHUB_SHA}}
+  - echo ${{string_var}} $PWD
   - sleep 600 
   - shutdown now
 
