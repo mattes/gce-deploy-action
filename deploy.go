@@ -65,7 +65,7 @@ func Run(githubActionConfig *GithubActionConfig, config *Config, deploy Deploy) 
 		maxUnavailable += "%"
 	}
 
-	Infof("%v: Started rolling deploy for instance group '%v/%v' with Update Type: %v, Minimal Action: %v, Replacement Method: %v, Min Ready: %vsec, Max Surge: %v, Max Unavailable: %v",
+	Infof("%v: Started rolling deploy for instance group '%v/%v' with UpdateType:%v, MinimalAction:%v, ReplacementMethod:%v, MinReady:%vsec, MaxSurge:%v, MaxUnavailable:%v",
 		deploy.Name, deploy.Project, deploy.InstanceGroup, deploy.UpdatePolicy.Type, deploy.UpdatePolicy.MinimalAction, deploy.UpdatePolicy.ReplacementMethod, deploy.UpdatePolicy.minReadySec, maxSurge, maxUnavailable)
 
 	// start rolling update via instance group manager

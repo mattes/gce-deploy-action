@@ -154,7 +154,7 @@ func StartRollingUpdate(c *computeBeta.Service, d Deploy, instanceTemplateURL st
 	// TODO consider making the following check a configuration flag
 	latestVersion := findLatestInstanceGroupManagerVersion(ig.Versions)
 	if latestVersion != "" && !VersionLessThan(latestVersion, d.InstanceTemplate) {
-		return fmt.Errorf("update instance group: instance template '%v' is too old, because '%v' is the latest instance template.", d.InstanceTemplate, latestVersion)
+		return fmt.Errorf("update instance group: instance template '%v' is too old, the newer instance template '%v' is already deployed.", d.InstanceTemplate, latestVersion)
 	}
 
 	ig.InstanceTemplate = "" // make sure it's empty
@@ -174,8 +174,6 @@ func StartRollingUpdate(c *computeBeta.Service, d Deploy, instanceTemplateURL st
 	ig.UpdatePolicy.Type = d.UpdatePolicy.Type
 	ig.UpdatePolicy.MinimalAction = d.UpdatePolicy.MinimalAction
 	ig.UpdatePolicy.ReplacementMethod = d.UpdatePolicy.ReplacementMethod
-
-	ig.UpdatePolicy.NullFields = []string{"InstanceRedistributionType"}
 
 	ig.UpdatePolicy.MinReadySec = int64(d.UpdatePolicy.minReadySec)
 	ig.UpdatePolicy.ForceSendFields = []string{"MinReadySec"}
