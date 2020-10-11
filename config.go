@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"gopkg.in/yaml.v2"
 )
 
@@ -266,7 +267,7 @@ func ParseConfig(b io.Reader) (*Config, error) {
 		dy := &c.Deploys[i]
 
 		if dy.StartupScriptPath != "" {
-			f, err := ioutil.ReadFile(dy.StartupScriptPath)
+			f, err := downloadOrReadFile(dy.StartupScriptPath)
 			if err != nil {
 				return nil, fmt.Errorf("startup_script: %v", err)
 			}
@@ -274,7 +275,7 @@ func ParseConfig(b io.Reader) (*Config, error) {
 		}
 
 		if dy.ShutdownScriptPath != "" {
-			f, err := ioutil.ReadFile(dy.ShutdownScriptPath)
+			f, err := downloadOrReadFile(dy.ShutdownScriptPath)
 			if err != nil {
 				return nil, fmt.Errorf("shutdown_script: %v", err)
 			}
@@ -282,7 +283,7 @@ func ParseConfig(b io.Reader) (*Config, error) {
 		}
 
 		if dy.CloudInitPath != "" {
-			f, err := ioutil.ReadFile(dy.CloudInitPath)
+			f, err := downloadOrReadFile(dy.CloudInitPath)
 			if err != nil {
 				return nil, fmt.Errorf("cloud_init: %v", err)
 			}
@@ -374,4 +375,24 @@ func expandCurlyRe(str string, vars map[string]string) string {
 
 		return vars[strings.ToLower(x)]
 	})
+}
+
+func downloadOrReadFile(path string) ([]byte, error) {
+	path = strings.TrimSpace(path)
+
+	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+		client := retryablehttp.NewClient()
+		client.RetryMax = 3
+		client.RetryWaitMax = 5 * time.Second
+
+		resp, err := client.Get(path)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		return ioutil.ReadAll(resp.Body)
+
+	} else {
+		return ioutil.ReadFile(path)
+	}
 }
