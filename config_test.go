@@ -15,7 +15,7 @@ func TestParseConfig(t *testing.T) {
 	// write tmp file to be used as startup/shutdown script
 	tmpFile, err := ioutil.TempFile("", "")
 	require.NoError(t, err)
-	tmpFile.WriteString("Foo: $BAR $(BAR) $(SCRIPTVARKEY)")
+	tmpFile.WriteString("Foo: $BAR ${{BAR}} ${{SCRIPTVARKEY}}")
 	tmpFile.Close()
 	defer os.Remove(tmpFile.Name())
 
@@ -121,7 +121,7 @@ func TestShellReTruncate(t *testing.T) {
 }
 
 func TestExpandMakeRe(t *testing.T) {
-	in := `$(foo) $(FOO) a$(foo)b \$(foo) a\$(foo)b $(foo)-$(foo) $(fo) $(f)`
+	in := `$foo $FOO $(foo) $(FOO) ${{foo}} ${{FOO}} ${{ foo }} ${{ FOO }} ${{   foo   }} ${{   FOO   }} a${{foo}}b \${{foo}} a\${{foo}}b ${{foo}}-${{foo}} ${{fo}} ${{f}}`
 
 	vars := map[string]string{
 		"f":   "b",
@@ -129,6 +129,6 @@ func TestExpandMakeRe(t *testing.T) {
 		"foo": "bar",
 	}
 
-	out := expandMakeRe(in, vars)
-	assert.Equal(t, `bar bar abarb \$(foo) a\$(foo)b bar-bar ba b`, out)
+	out := expandCurlyRe(in, vars)
+	assert.Equal(t, `$foo $FOO $(foo) $(FOO) bar bar bar bar bar bar abarb \${{foo}} a\${{foo}}b bar-bar ba b`, out)
 }

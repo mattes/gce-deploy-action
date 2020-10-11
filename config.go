@@ -270,7 +270,7 @@ func ParseConfig(b io.Reader) (*Config, error) {
 			if err != nil {
 				return nil, fmt.Errorf("startup_script: %v", err)
 			}
-			dy.startupScript = expandMakeRe(string(f), getEnv(dy.Vars))
+			dy.startupScript = expandCurlyRe(string(f), getEnv(dy.Vars))
 		}
 
 		if dy.ShutdownScriptPath != "" {
@@ -278,7 +278,7 @@ func ParseConfig(b io.Reader) (*Config, error) {
 			if err != nil {
 				return nil, fmt.Errorf("shutdown_script: %v", err)
 			}
-			dy.shutdownScript = expandMakeRe(string(f), getEnv(dy.Vars))
+			dy.shutdownScript = expandCurlyRe(string(f), getEnv(dy.Vars))
 		}
 
 		if dy.CloudInitPath != "" {
@@ -286,7 +286,7 @@ func ParseConfig(b io.Reader) (*Config, error) {
 			if err != nil {
 				return nil, fmt.Errorf("cloud_init: %v", err)
 			}
-			dy.cloudInit = expandMakeRe(string(f), getEnv(dy.Vars))
+			dy.cloudInit = expandCurlyRe(string(f), getEnv(dy.Vars))
 		}
 	}
 
@@ -309,10 +309,11 @@ func getEnv(locals map[string]string) map[string]string {
 }
 
 var (
-	shellVarRe    = regexp.MustCompile(`\\?\${?([a-zA-Z]([a-zA-Z0-9-_]+[a-zA-Z0-9]|[a-zA-Z0-9]*)(:\d(:\d)?)?)}?`)
-	makefileVarRe = regexp.MustCompile(`\\?\$\([a-zA-Z0-9_-]+\)`)
+	shellVarRe = regexp.MustCompile(`\\?\${?([a-zA-Z]([a-zA-Z0-9-_]+[a-zA-Z0-9]|[a-zA-Z0-9]*)(:\d(:\d)?)?)}?`)
+	curlyVarRe = regexp.MustCompile(`\\?\$\{\{ *[a-zA-Z0-9_-]+ *\}\}`)
 )
 
+// expandShellRe replaces $VAR and ${VAR}
 func expandShellRe(str string, vars map[string]string) string {
 	return shellVarRe.ReplaceAllStringFunc(str, func(x string) string {
 
@@ -360,14 +361,16 @@ func expandShellRe(str string, vars map[string]string) string {
 	})
 }
 
-func expandMakeRe(str string, vars map[string]string) string {
-	return makefileVarRe.ReplaceAllStringFunc(str, func(x string) string {
+// expandCurlyRe replaces ${{VAR}}
+func expandCurlyRe(str string, vars map[string]string) string {
+	return curlyVarRe.ReplaceAllStringFunc(str, func(x string) string {
 
 		if strings.HasPrefix(x, `\$`) {
 			return x
 		}
 
-		x = strings.Trim(x, "$()")
+		x = strings.Trim(x, "${}")
+		x = strings.TrimSpace(x)
 
 		return vars[strings.ToLower(x)]
 	})
