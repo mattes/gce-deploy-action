@@ -120,7 +120,7 @@ func TestShellReTruncate(t *testing.T) {
 	assert.Equal(t, `abcABC123ABCabc bcABC123ABCabc 23ABCabc 23A b`, out)
 }
 
-func TestExpandMakeRe(t *testing.T) {
+func TestExpandCurlyRe(t *testing.T) {
 	in := `$foo $FOO $(foo) $(FOO) ${{foo}} ${{FOO}} ${{ foo }} ${{ FOO }} ${{   foo   }} ${{   FOO   }} a${{foo}}b \${{foo}} a\${{foo}}b ${{foo}}-${{foo}} ${{fo}} ${{f}}`
 
 	vars := map[string]string{
