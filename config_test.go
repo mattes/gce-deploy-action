@@ -96,6 +96,91 @@ deploys:
 	assert.Equal(t, false, c.Deploys[0].UpdatePolicy.maxUnavailableInPercent)
 }
 
+func TestParseConfigWithCommonConfig(t *testing.T) {
+	// write tmp file to be used as startup/shutdown script
+	tmpFile, err := ioutil.TempFile("", "")
+	require.NoError(t, err)
+	tmpFile.WriteString("common-file")
+	tmpFile.Close()
+	defer os.Remove(tmpFile.Name())
+
+	config := `
+common: 
+  project: commonproject
+  region: commonregion
+  startup_script: ` + tmpFile.Name() + `
+  shutdown_script: ` + tmpFile.Name() + `
+  cloud_init: ` + tmpFile.Name() + `
+  vars:
+    var1: commonvar1
+    var2: commonvar2
+  labels:
+    label1: commonlabel1
+    label2: commonlabel2
+  metadata:
+    metadata1: commonmetadata1
+    metadata2: commonmetadata2
+  tags:
+    - commontag1
+    - commontag2
+  update_policy:
+    type: commontype
+    minimal_action: common-minimal-action
+    replacement_method: common-replacement-method
+    min_ready_sec: 10
+    max_surge: 11
+    max_unavailable: 12
+
+deploys:
+  - name: test
+    instance_group: x
+    instance_template_base: y
+    instance_template: z
+    vars:
+      var1: var1
+    labels:
+      label1: label1
+    metadata:
+      metadata1: metadata1
+    tags:
+      - tag1
+`
+
+	c, err := ParseConfig(strings.NewReader(config))
+	require.NoError(t, err)
+
+	assert.Equal(t, "test", c.Deploys[0].Name)
+	assert.Equal(t, "commonproject", c.Deploys[0].Project)
+	assert.Equal(t, "commonregion", c.Deploys[0].Region)
+	assert.Equal(t, tmpFile.Name(), c.Deploys[0].StartupScriptPath)
+	assert.Equal(t, tmpFile.Name(), c.Deploys[0].ShutdownScriptPath)
+	assert.Equal(t, tmpFile.Name(), c.Deploys[0].CloudInitPath)
+
+	require.Len(t, c.Deploys[0].Vars, 2)
+	assert.Equal(t, "var1", c.Deploys[0].Vars["var1"])
+	assert.Equal(t, "commonvar2", c.Deploys[0].Vars["var2"])
+
+	require.Len(t, c.Deploys[0].Labels, 2)
+	assert.Equal(t, "label1", c.Deploys[0].Labels["label1"])
+	assert.Equal(t, "commonlabel2", c.Deploys[0].Labels["label2"])
+
+	require.Len(t, c.Deploys[0].Metadata, 2)
+	assert.Equal(t, "metadata1", c.Deploys[0].Metadata["metadata1"])
+	assert.Equal(t, "commonmetadata2", c.Deploys[0].Metadata["metadata2"])
+
+	require.Len(t, c.Deploys[0].Tags, 3)
+	assert.Equal(t, "tag1", c.Deploys[0].Tags[0])
+	assert.Equal(t, "commontag1", c.Deploys[0].Tags[1])
+	assert.Equal(t, "commontag2", c.Deploys[0].Tags[2])
+
+	assert.Equal(t, "commontype", c.Deploys[0].UpdatePolicy.Type)
+	assert.Equal(t, "common-replacement-method", c.Deploys[0].UpdatePolicy.ReplacementMethod)
+	assert.Equal(t, "common-minimal-action", c.Deploys[0].UpdatePolicy.MinimalAction)
+	assert.Equal(t, "10", c.Deploys[0].UpdatePolicy.MinReadySec)
+	assert.Equal(t, "11", c.Deploys[0].UpdatePolicy.MaxSurge)
+	assert.Equal(t, "12", c.Deploys[0].UpdatePolicy.MaxUnavailable)
+}
+
 func TestExpandShellRe(t *testing.T) {
 	in := `$foo $FOO ${foo} a${foo}b \$foo \${foo} a\${foo}b $foo-$foo $foo-${foo} $fo $f`
 

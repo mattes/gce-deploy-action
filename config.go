@@ -66,7 +66,21 @@ func ReadConfigFile(path string) (io.ReadCloser, error) {
 type Config struct {
 	DeleteInstanceTemplatesAfter string `yaml:"delete_instance_templates_after"`
 	deleteInstanceTemplatesAfter time.Duration
+	Common                       Common   `yaml:"common"`
 	Deploys                      []Deploy `yaml:"deploys"`
+}
+
+type Common struct {
+	Project            string            `yaml:"project"`
+	Region             string            `yaml:"region"`
+	StartupScriptPath  string            `yaml:"startup_script"`
+	ShutdownScriptPath string            `yaml:"shutdown_script"`
+	CloudInitPath      string            `yaml:"cloud_init"`
+	Vars               map[string]string `yaml:"vars"`
+	Labels             map[string]string `yaml:"labels"`
+	Metadata           map[string]string `yaml:"metadata"`
+	Tags               []string          `yaml:"tags"`
+	UpdatePolicy       UpdatePolicy      `yaml:"update_policy"`
 }
 
 type Deploy struct {
@@ -111,6 +125,69 @@ func ParseConfig(b io.Reader) (*Config, error) {
 	d.SetStrict(true)
 	if err := d.Decode(c); err != nil && err != io.EOF {
 		return nil, fmt.Errorf("config: %v", err)
+	}
+
+	// merge common config
+	for i := 0; i < len(c.Deploys); i++ {
+		deploy := &c.Deploys[i]
+
+		if strings.TrimSpace(deploy.Project) == "" {
+			deploy.Project = c.Common.Project
+		}
+		if strings.TrimSpace(deploy.Region) == "" {
+			deploy.Region = c.Common.Region
+		}
+		if strings.TrimSpace(deploy.StartupScriptPath) == "" {
+			deploy.StartupScriptPath = c.Common.StartupScriptPath
+		}
+		if strings.TrimSpace(deploy.ShutdownScriptPath) == "" {
+			deploy.ShutdownScriptPath = c.Common.ShutdownScriptPath
+		}
+		if strings.TrimSpace(deploy.CloudInitPath) == "" {
+			deploy.CloudInitPath = c.Common.CloudInitPath
+		}
+
+		for k, v := range c.Common.Vars {
+			if _, ok := deploy.Vars[k]; !ok {
+				deploy.Vars[k] = v
+			}
+		}
+
+		for k, v := range c.Common.Labels {
+			if _, ok := deploy.Labels[k]; !ok {
+				deploy.Labels[k] = v
+			}
+		}
+
+		for k, v := range c.Common.Metadata {
+			if _, ok := deploy.Metadata[k]; !ok {
+				deploy.Metadata[k] = v
+			}
+		}
+
+		deploy.Tags = append(deploy.Tags, c.Common.Tags...)
+
+		if strings.TrimSpace(deploy.UpdatePolicy.Type) == "" {
+			deploy.UpdatePolicy.Type = c.Common.UpdatePolicy.Type
+		}
+		if strings.TrimSpace(deploy.UpdatePolicy.ReplacementMethod) == "" {
+			deploy.UpdatePolicy.ReplacementMethod = c.Common.UpdatePolicy.ReplacementMethod
+		}
+		if strings.TrimSpace(deploy.UpdatePolicy.MinimalAction) == "" {
+			deploy.UpdatePolicy.MinimalAction = c.Common.UpdatePolicy.MinimalAction
+		}
+		if strings.TrimSpace(deploy.UpdatePolicy.MinimalAction) == "" {
+			deploy.UpdatePolicy.MinimalAction = c.Common.UpdatePolicy.MinimalAction
+		}
+		if strings.TrimSpace(deploy.UpdatePolicy.MinReadySec) == "" {
+			deploy.UpdatePolicy.MinReadySec = c.Common.UpdatePolicy.MinReadySec
+		}
+		if strings.TrimSpace(deploy.UpdatePolicy.MaxSurge) == "" {
+			deploy.UpdatePolicy.MaxSurge = c.Common.UpdatePolicy.MaxSurge
+		}
+		if strings.TrimSpace(deploy.UpdatePolicy.MaxUnavailable) == "" {
+			deploy.UpdatePolicy.MaxUnavailable = c.Common.UpdatePolicy.MaxUnavailable
+		}
 	}
 
 	// if DeleteInstanceTemplatesAfter is not set to false
