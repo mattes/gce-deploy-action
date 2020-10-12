@@ -3,8 +3,10 @@
 runcmd:
   - iptables -w -A INPUT -p tcp --dport 8080 -j ACCEPT
   - docker run -d --name nginx -p 8080:80 nginx
-  - echo ${{GITHUB_SHA}}
-  - echo ${{string_var}} $PWD
+  - echo "Replaced during compilation with existing ENV variable: ${{GITHUB_SHA}}"
+  - echo "Replaced during compilation with deploys.my-deploy.vars.string_var: ${{string_var}}"
+  - echo "Current directory: $PWD"
+  - echo "Current directory: ${PWD}"
   - sleep 600 
   - shutdown now
 

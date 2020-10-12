@@ -241,7 +241,7 @@ func CleanupInstanceTemplates(c *compute.Service, project string, after time.Dur
 		wg.Add(1)
 		go func(instanceTemplate string) {
 			defer wg.Done()
-			if _, err := s.Delete(project, instanceTemplate).Do(); err != nil && !isInUseByAnotherResource(err) {
+			if _, err := s.Delete(project, instanceTemplate).Do(); err != nil && !isInUseByAnotherResource(err) && !isNotReadyErr(err) {
 				LogWarning(err.Error(), nil)
 			}
 			Infof("Deleted old instance template '%v/%v'", project, instanceTemplate)
