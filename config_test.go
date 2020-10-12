@@ -181,6 +181,30 @@ deploys:
 	assert.Equal(t, "12", c.Deploys[0].UpdatePolicy.MaxUnavailable)
 }
 
+func TestNilMaps(t *testing.T) {
+	config := `
+common: 
+  vars:
+    var1: x
+  labels:
+    label1: x
+  metadata:
+    metadata1: x
+  tags:
+    - tag1
+
+deploys:
+  - name: test
+    region: w
+    instance_group: x
+    instance_template_base: y
+    instance_template: z
+`
+
+	_, err := ParseConfig(strings.NewReader(config))
+	require.NoError(t, err)
+}
+
 func TestExpandShellRe(t *testing.T) {
 	in := `$foo $FOO ${foo} a${foo}b \$foo \${foo} a\${foo}b $foo-$foo $foo-${foo} $fo $f`
 

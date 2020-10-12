@@ -147,18 +147,27 @@ func ParseConfig(b io.Reader) (*Config, error) {
 			deploy.CloudInitPath = c.Common.CloudInitPath
 		}
 
+		if deploy.Vars == nil {
+			deploy.Vars = make(map[string]string)
+		}
 		for k, v := range c.Common.Vars {
 			if _, ok := deploy.Vars[k]; !ok {
 				deploy.Vars[k] = v
 			}
 		}
 
+		if deploy.Labels == nil {
+			deploy.Labels = make(map[string]string)
+		}
 		for k, v := range c.Common.Labels {
 			if _, ok := deploy.Labels[k]; !ok {
 				deploy.Labels[k] = v
 			}
 		}
 
+		if deploy.Metadata == nil {
+			deploy.Metadata = make(map[string]string)
+		}
 		for k, v := range c.Common.Metadata {
 			if _, ok := deploy.Metadata[k]; !ok {
 				deploy.Metadata[k] = v
