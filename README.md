@@ -26,17 +26,17 @@ Here is an example:
 ```yaml
 common:
   labels:
-    gitsha: $GITHUB_SHA
+    gitsha: ${{GITHUB_SHA}}
 
 deploys:
   - name: my-app-deploy
     region: us-central1
     instance_group: my-app-instance-group
     instance_template_base: my-app-instance-template-base
-    instance_template: my-app-$GITHUB_RUN_NUMBER-$GITHUB_SHA
+    instance_template: my-app-${{GITHUB_RUN_NUMBER}}-${{GITHUB_SHA}}
     cloud_init: cloud-init.yml # see example dir
     labels: # will also have gitsha from common section
-      version: $APP_VERSION
+      version: ${{APP_VERSION}}
     tags:
       - my-tag123
     update_policy:
@@ -89,22 +89,13 @@ delete_instance_templates_after: false
 
 ### Variables
 
-#### Variables in `deploy.yml`
-
-Environment variables can be used in `deploy.yml`. The syntax is `$FOO` or `${FOO}` and supports
-substring extraction, i.e. `${GITHUB_SHA:0:7}`: 
+Environment variables can be used in `deploy.yml`, `startup_script`, `shutdown_script` and `cloud_init` files.
+The syntax is `${{FOO}}` and supports substring extraction, i.e. `${{GITHUB_SHA:0:7}}`: 
 
 ```
-${VAR:position}        - Extracts substring from $VAR at "position"
-${VAR:position:length} - Extracts "length" characters of substring from $VAR at "position"
+${{VAR:position}}        - Extracts substring from $VAR at "position"
+${{VAR:position:length}} - Extracts "length" characters of substring from $VAR at "position"
 ```
-
-#### Variables in `startup_script`, `shutdown_script` or `cloud_init`
-
-Environment variables or `deploys.*.vars` can be used in the `startup_script`, `shutdown_script` or `cloud_init`, see [example](example/cloud-init.yml).
-The syntax is `${{FOO}}`.
-
-#### Github ENV variables
 
 Github sets a bunch of [default environment variables](https://help.github.com/en/actions/automating-your-workflow-with-github-actions/using-environment-variables#default-environment-variables).
 

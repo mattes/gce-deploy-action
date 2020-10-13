@@ -218,14 +218,14 @@ func ParseConfig(b io.Reader) (*Config, error) {
 	for i := range c.Deploys {
 		dy := &c.Deploys[i]
 
-		dy.Name = expandShellRe(dy.Name, getEnv(nil))
+		dy.Name = expandVars(dy.Name, getEnv(nil))
 		if dy.Name == "" {
 			return nil, fmt.Errorf("deploy item #%v needs name", i+1)
 		}
 
-		dy.Project = expandShellRe(dy.Project, getEnv(nil))
+		dy.Project = expandVars(dy.Project, getEnv(nil))
 
-		dy.GoogleApplicationCredentials = expandShellRe(dy.GoogleApplicationCredentials, getEnv(nil))
+		dy.GoogleApplicationCredentials = expandVars(dy.GoogleApplicationCredentials, getEnv(nil))
 
 		f, err := ioutil.ReadFile(dy.GoogleApplicationCredentials)
 		if err == nil {
@@ -234,55 +234,55 @@ func ParseConfig(b io.Reader) (*Config, error) {
 			dy.googleApplicationCredentialsData = dy.GoogleApplicationCredentials
 		}
 
-		dy.Region = expandShellRe(dy.Region, getEnv(nil))
+		dy.Region = expandVars(dy.Region, getEnv(nil))
 		if dy.Region == "" {
 			return nil, fmt.Errorf("deploy '%v' needs region", dy.Name)
 		}
 
-		dy.InstanceGroup = expandShellRe(dy.InstanceGroup, getEnv(nil))
+		dy.InstanceGroup = expandVars(dy.InstanceGroup, getEnv(nil))
 		if dy.InstanceGroup == "" {
 			return nil, fmt.Errorf("deploy '%v' needs instance_group", dy.Name)
 		}
 
-		dy.InstanceTemplateBase = expandShellRe(dy.InstanceTemplateBase, getEnv(nil))
+		dy.InstanceTemplateBase = expandVars(dy.InstanceTemplateBase, getEnv(nil))
 		if dy.InstanceTemplateBase == "" {
 			return nil, fmt.Errorf("deploy '%v' needs instance_template_base", dy.Name)
 		}
 
-		dy.InstanceTemplate = expandShellRe(dy.InstanceTemplate, getEnv(nil))
+		dy.InstanceTemplate = expandVars(dy.InstanceTemplate, getEnv(nil))
 		if dy.InstanceTemplate == "" {
 			return nil, fmt.Errorf("deploy '%v' needs instance_template", dy.Name)
 		}
 
-		dy.StartupScriptPath = expandShellRe(dy.StartupScriptPath, getEnv(nil))
+		dy.StartupScriptPath = expandVars(dy.StartupScriptPath, getEnv(nil))
 
-		dy.ShutdownScriptPath = expandShellRe(dy.ShutdownScriptPath, getEnv(nil))
+		dy.ShutdownScriptPath = expandVars(dy.ShutdownScriptPath, getEnv(nil))
 
-		dy.CloudInitPath = expandShellRe(dy.CloudInitPath, getEnv(nil))
+		dy.CloudInitPath = expandVars(dy.CloudInitPath, getEnv(nil))
 
 		for k, v := range dy.Vars {
-			dy.Vars[k] = expandShellRe(v, getEnv(nil))
+			dy.Vars[k] = expandVars(v, getEnv(nil))
 		}
 
 		for k, v := range dy.Labels {
-			dy.Labels[k] = expandShellRe(v, getEnv(nil))
+			dy.Labels[k] = expandVars(v, getEnv(nil))
 		}
 
 		for k, v := range dy.Metadata {
-			dy.Metadata[k] = expandShellRe(v, getEnv(nil))
+			dy.Metadata[k] = expandVars(v, getEnv(nil))
 		}
 
 		for j := range dy.Tags {
-			dy.Tags[j] = expandShellRe(dy.Tags[j], getEnv(nil))
+			dy.Tags[j] = expandVars(dy.Tags[j], getEnv(nil))
 		}
 
 		// expand vars in update policy
-		dy.UpdatePolicy.Type = expandShellRe(dy.UpdatePolicy.Type, getEnv(nil))
-		dy.UpdatePolicy.MinimalAction = expandShellRe(dy.UpdatePolicy.MinimalAction, getEnv(nil))
-		dy.UpdatePolicy.ReplacementMethod = expandShellRe(dy.UpdatePolicy.ReplacementMethod, getEnv(nil))
-		dy.UpdatePolicy.MinReadySec = expandShellRe(dy.UpdatePolicy.MinReadySec, getEnv(nil))
-		dy.UpdatePolicy.MaxSurge = expandShellRe(dy.UpdatePolicy.MaxSurge, getEnv(nil))
-		dy.UpdatePolicy.MaxUnavailable = expandShellRe(dy.UpdatePolicy.MaxUnavailable, getEnv(nil))
+		dy.UpdatePolicy.Type = expandVars(dy.UpdatePolicy.Type, getEnv(nil))
+		dy.UpdatePolicy.MinimalAction = expandVars(dy.UpdatePolicy.MinimalAction, getEnv(nil))
+		dy.UpdatePolicy.ReplacementMethod = expandVars(dy.UpdatePolicy.ReplacementMethod, getEnv(nil))
+		dy.UpdatePolicy.MinReadySec = expandVars(dy.UpdatePolicy.MinReadySec, getEnv(nil))
+		dy.UpdatePolicy.MaxSurge = expandVars(dy.UpdatePolicy.MaxSurge, getEnv(nil))
+		dy.UpdatePolicy.MaxUnavailable = expandVars(dy.UpdatePolicy.MaxUnavailable, getEnv(nil))
 
 		if strings.TrimSpace(dy.UpdatePolicy.Type) == "" {
 			dy.UpdatePolicy.Type = "PROACTIVE"
@@ -357,7 +357,7 @@ func ParseConfig(b io.Reader) (*Config, error) {
 			if err != nil {
 				return nil, fmt.Errorf("startup_script: %v", err)
 			}
-			dy.startupScript = expandCurlyRe(string(f), getEnv(dy.Vars))
+			dy.startupScript = expandVars(string(f), getEnv(dy.Vars))
 		}
 
 		if dy.ShutdownScriptPath != "" {
@@ -365,7 +365,7 @@ func ParseConfig(b io.Reader) (*Config, error) {
 			if err != nil {
 				return nil, fmt.Errorf("shutdown_script: %v", err)
 			}
-			dy.shutdownScript = expandCurlyRe(string(f), getEnv(dy.Vars))
+			dy.shutdownScript = expandVars(string(f), getEnv(dy.Vars))
 		}
 
 		if dy.CloudInitPath != "" {
@@ -373,7 +373,7 @@ func ParseConfig(b io.Reader) (*Config, error) {
 			if err != nil {
 				return nil, fmt.Errorf("cloud_init: %v", err)
 			}
-			dy.cloudInit = expandCurlyRe(string(f), getEnv(dy.Vars))
+			dy.cloudInit = expandVars(string(f), getEnv(dy.Vars))
 		}
 	}
 
@@ -396,25 +396,24 @@ func getEnv(locals map[string]string) map[string]string {
 }
 
 var (
-	shellVarRe = regexp.MustCompile(`\\?\${?([a-zA-Z]([a-zA-Z0-9-_]+[a-zA-Z0-9]|[a-zA-Z0-9]*)(:\d(:\d)?)?)}?`)
-	curlyVarRe = regexp.MustCompile(`\\?\$\{\{ *[a-zA-Z0-9_-]+ *\}\}`)
+	variableRe = regexp.MustCompile(`\\?\$\{\{ *([a-zA-Z]([a-zA-Z0-9-_]+[a-zA-Z0-9]|[a-zA-Z0-9]*)(:\d(:\d)?)?) *\}\}`)
 )
 
-// expandShellRe replaces $VAR and ${VAR}
-func expandShellRe(str string, vars map[string]string) string {
-	return shellVarRe.ReplaceAllStringFunc(str, func(x string) string {
-
+// expandVars replaces ${{VAR}}
+func expandVars(str string, vars map[string]string) string {
+	return variableRe.ReplaceAllStringFunc(str, func(x string) string {
 		if strings.HasPrefix(x, `\$`) {
 			return x
 		}
 
 		x = strings.Trim(x, "${}")
+		x = strings.TrimSpace(x)
 
 		if !strings.Contains(x, ":") {
 			return vars[strings.ToLower(x)]
 		}
 
-		// parse ${string:position[:length]} and truncate string
+		// parse ${{string:position[:length]}} and truncate string
 		parts := strings.Split(x, ":")
 		switch len(parts) {
 		default:
@@ -445,21 +444,6 @@ func expandShellRe(str string, vars map[string]string) string {
 			}
 			return v[from : from+to]
 		}
-	})
-}
-
-// expandCurlyRe replaces ${{VAR}}
-func expandCurlyRe(str string, vars map[string]string) string {
-	return curlyVarRe.ReplaceAllStringFunc(str, func(x string) string {
-
-		if strings.HasPrefix(x, `\$`) {
-			return x
-		}
-
-		x = strings.Trim(x, "${}")
-		x = strings.TrimSpace(x)
-
-		return vars[strings.ToLower(x)]
 	})
 }
 

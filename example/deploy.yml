@@ -4,17 +4,17 @@ deploys:
     region: us-central1
     instance_group: github-action-instance-group-1
     instance_template_base: github-action-instance-template-test-1
-    instance_template: github-action-instance-template-$GITHUB_RUN_NUMBER-${GITHUB_SHA:0:7}
+    instance_template: github-action-instance-template-${{GITHUB_RUN_NUMBER}}-${{GITHUB_SHA:0:7}}
     cloud_init: cloud-init.yml
     vars:
       string_var: "The current directory is:"
     labels:
-      github_sha: $GITHUB_SHA
+      github_sha: ${{GITHUB_SHA}}
     tags:
       - no-network
       - app123
     metadata:
-      github_run_number: $GITHUB_RUN_NUMBER
+      github_run_number: ${{GITHUB_RUN_NUMBER}}
     update_policy:
       min_ready_sec: 20
 
