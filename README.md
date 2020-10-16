@@ -117,6 +117,7 @@ with:
 
 ## More Documentation
 
+* [My own Heroku in 30 mins - Deploy Rails apps to Google Cloud Compute Engine](https://gist.github.com/mattes/8f00da1f8ec55712e212f51a14745835)
 * [Managed Instance Groups](https://cloud.google.com/compute/docs/instance-groups/creating-groups-of-managed-instances)
 * [Container-Optimized OS](https://cloud.google.com/container-optimized-os/)
 * [cloud-init](https://cloud.google.com/container-optimized-os/docs/how-to/create-configure-instance#using_cloud-init)
